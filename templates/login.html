@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <title>Iniciar sesión - Netflix</title>
+    <link rel="stylesheet" href="../static/css/login.css">
+</head>
+    <body>
+        
+        <nav class="Logo-Netflix">
+            <img src="https://media.geeksforgeeks.org/wp-content/uploads/20240313101431/Netflix-Logo.png" alt="Netflix Logo" width="180">
+        </nav>
+
+        <main>
+            <form>
+                <h1 class="cabeza1">Enter your info to sign in</h1>
+                <h2 class="cabeza2">Or get started with a new account.</h2>
+                <div>
+                    <label for ="email"></label>
+                    <input type="text" id="email" name="email" required placeholder="Email or phone number">
+                </div>
+                <div>
+                    <label for ="password"></label>
+                    <input type="password" id="password" name="password" required placeholder="Password">
+                </div>
+                <div class="nav-button">
+                    <a href="/logout" class="nav-button"
+            >Continue</a>
+                </div>
+                <div>
+                    <input type="checkbox" id="remember">
+                    <label for="remember">Remember me</label>
+                </div>
+                <div>
+                    <a href="#">¿Necesitas ayuda?</a>
+                </div>
+                <div>
+                    <span>¿Nuevo en Netflix? <a href="#">Suscríbete Ahora</a>.</span>
+                </div>
+            </form>
+        </main>
+    </body>
+</html>

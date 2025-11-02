@@ -1,0 +1,62 @@
+body {
+    background: linear-gradient(to top, #e50914 0%, #221f1f 100%);
+    font-family: Montserrat;
+    color:antiquewhite;
+    text-align:center;
+    margin:0;
+    margin: auto;
+}
+
+.cabeza2 {
+    font-size: medium;
+    font-weight: 400;
+}
+
+main {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 75.5vh;
+}
+
+form {
+    margin: 0;
+    padding: 10px;
+}
+
+label {
+    background-color: transparent;
+    margin: auto;
+}
+
+input {
+    background-color: #221f1f;
+    margin: 0;
+    margin: auto;
+    padding: 17px;
+    border-radius: 4px;
+    color: #fff;
+    text-size-adjust: initial;
+}
+
+nav {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.nav-button {
+  background-color: #e50914;
+  color: #fff;
+  border: none;
+  padding: 0.6rem 1rem;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.3s ease;
+  display: flex;
+  justify-content: center;
+}
