@@ -7,6 +7,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import os
 from datetime import datetime
 
+# Cargar variables de entorno
 load_dotenv()
 
 app = Flask(__name__)
