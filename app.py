@@ -7,7 +7,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import os
 from datetime import datetime
 
-# Cargar variables de entorno
 load_dotenv()
 
 app = Flask(__name__)
@@ -27,12 +26,10 @@ class User(UserMixin, db.Model):
     subscription_type = db.Column(db.String(50), nullable=True, default='basic')
 
     payments = db.relationship('Payment', backref='user', lazy=True)
-    #payments = db.Column(db.String(200), nullable=True)  # Puede almacenar info de pago
-    #profile = db.Column(db.String(200), nullable=True)
 class Payment(db.Model):
     __tablename__ = 'payment'
-    id = db.Column('id_serial', db.Integer, primary_key = True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    id = db.Column(db.Integer, primary_key = True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id') , nullable=False)
     amount = db.Column(db.Numeric(10,2), nullable=True)
     payment_date = db.Column(db.Date, nullable=True)
     payment_method = db.Column(db.String(20), nullable=True)
@@ -135,52 +132,54 @@ def payment_info():
         # Crear username basado en el email
         email = session['temp_email']
         username = email.split('@')[0]
-        
-        # Si el username ya existe, agregar un número
         base_username = username
         counter = 1
+
         while User.query.filter_by(username=username).first():
             username = f"{base_username}{counter}"
             counter += 1
-        # Crear objeto Payment primero
-        payment_obj = Payment(
-            amount=10.99,
-            payment_date=datetime.now().date(),
-            payment_method='credit_card',
-            status='completed',
-            card_number=f"****{card_number[-4:]}"
-        )
-        
-        # Crear el nuevo usuario
-        new_user = User(
-            username=username,
-            email=session['temp_email'],
-            password=generate_password_hash(session['temp_password']),
-            subscription_type=session['temp_plan'],
-            is_active=True,
-            payments=[payment_obj]
-        )
         
         try:
+            # Crear el nuevo usuario
+            new_user = User(
+                username=username,
+                email=session['temp_email'],
+                password=generate_password_hash(session['temp_password']),
+                subscription_type=session['temp_plan'],
+                is_active=True,
+    
+            )
             db.session.add(new_user)
             db.session.commit()
-            
+
+             # 2. Crear pago ASOCIADO a ese usuario
+            payment_obj = Payment(
+                user_id=new_user.id, 
+                amount=10.99,
+                payment_date=datetime.now().date(),
+                payment_method='credit_card',
+                status='completed',
+                card_number=f"****{card_number[-4:]}",
+                created_at=datetime.now()
+            )
+            db.session.add(payment_obj)
+            db.session.commit()
+
             # Limpiar la sesión
             session.pop('temp_email', None)
             session.pop('temp_password', None)
             session.pop('temp_plan', None)
-            
-            # Iniciar sesión automáticamente
+            # Login automático
             login_user(new_user)
-            
             flash('¡Registro exitoso! Bienvenido a Netflix', 'success')
             return redirect(url_for('home'))
-            
+        
         except Exception as e:
             db.session.rollback()
+            print("Error al crear usuario:", e)
             flash('Error al crear la cuenta. Intenta de nuevo.', 'danger')
-            return redirect(url_for('register'))
-    
+            return redirect(url_for('register'))         
+        
     return render_template('register_step3.html', plan=session.get('temp_plan'))
 
 if __name__ == '__main__':
@@ -190,6 +189,11 @@ if __name__ == '__main__':
 
 '''if __name__ == "__main__":
     app.run(debug=True)'''
+
+
+
+
+
 
 
 
