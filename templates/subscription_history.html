@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block title %}Historial de Suscripción{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/subscription.css') }}">
+{% endblock %}
+
+{% block content %}
+  <h1>Historial de cambios de suscripción</h1>
+
+  {% if historial and historial|length > 0 %}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Plan anterior</th>
+          <th>Plan nuevo</th>
+          <th>Fecha de cambio</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in historial %}
+        <tr>
+          <td>{{ row.plan_anterior }}</td>
+          <td>{{ row.plan_nuevo }}</td>
+          <td>{{ row.fecha_cambio }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No hay registros de cambios de plan.</p>
+  {% endif %}
+
+{% endblock %}

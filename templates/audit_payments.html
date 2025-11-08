@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}Auditoría de Pagos{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/audit.css') }}">
+{% endblock %}
+
+{% block content %}
+  <h1>Auditoría - Pagos</h1>
+
+  {% if audit_records and audit_records|length > 0 %}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Payment ID</th>
+          <th>User ID</th>
+          <th>Monto</th>
+          <th>Método</th>
+          <th>Estado</th>
+          <th>Acción</th>
+          <th>Fecha</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in audit_records %}
+        <tr>
+          <td>{{ r.payment_id }}</td>
+          <td>{{ r.user_id }}</td>
+          <td>{{ r.amount }}</td>
+          <td>{{ r.payment_method }}</td>
+          <td>{{ r.status }}</td>
+          <td>{{ r.accion }}</td>
+          <td>{{ r.fecha_auditoria }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No hay registros de auditoría de pagos.</p>
+  {% endif %}
+
+{% endblock %}

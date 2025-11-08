@@ -1,19 +1,42 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Netflix Clone</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <h1>🎬 Catálogo de Películas</h1>
-    <div class="grid">
-        {% for movie in movies %}
-        <div class="card">
-            <img src="{{ movie.image_url }}" alt="{{ movie.title }}">
-            <h3>{{ movie.title }}</h3>
-            <p>{{ movie.description }}</p>
+{% extends 'base.html' %}
+
+{% block title %}Inicio - Catálogo{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/catalog.css') }}">
+{% endblock %}
+
+{% block content %}
+    <div class="catalog-container">
+        <div class="catalog-header">
+            <h2>Catálogo</h2>
+            <div>
+                {% if current_user.is_authenticated %}
+                    <small>Bienvenido, {{ current_user.username }}</small>
+                {% else %}
+                    <a class="btn-netflix" href="{{ url_for('login') }}">Iniciar sesión</a>
+                {% endif %}
+            </div>
         </div>
-        {% endfor %}
+
+        {% if movies and movies|length > 0 %}
+            <div class="catalog-grid">
+                {% for m in movies %}
+                    <div class="card">
+                        {% if m.image_url %}
+                            <img src="{{ m.image_url }}" alt="{{ m.title }}">
+                        {% else %}
+                            <img src="https://via.placeholder.com/300x400?text=No+Image" alt="{{ m.title }}">
+                        {% endif %}
+                        <div class="card-body">
+                            <div class="card-title">{{ m.title }}</div>
+                            <div class="card-desc">{{ m.description or 'Sin descripción disponible' }}</div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>No hay películas disponibles.</p>
+        {% endif %}
     </div>
-</body>
-</html>
+{% endblock %}

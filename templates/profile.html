@@ -1,23 +1,256 @@
-<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8">
-  <title>Perfil</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-  <div class="container mt-5" style="max-width:720px;">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h2>Perfil de usuario</h2>
-      <a class="btn btn-outline-secondary" href="{{ url_for('logout') }}">Cerrar sesión</a>
-    </div>
+{% extends "base.html" %}
 
-    <div class="card p-4">
-      <p><strong>Usuario:</strong> {{ user.username }}</p>
-      <!-- Muestra más datos del usuario si los agregas al modelo -->
-    </div>
+{% block title %}Mi Perfil - Netflix{% endblock %}
 
-    <p class="mt-3"><a href="{{ url_for('home') }}">Volver al inicio</a></p>
-  </div>
-</body>
-</html>
+{% block content %}
+<style>
+    .profile-header {
+        background: linear-gradient(to right, #e50914, #831010);
+        padding: 2rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+    }
+    .profile-section {
+        background-color: #1a1a1a;
+        padding: 2rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+    }
+    .profile-section h2 {
+        margin-bottom: 1rem;
+        color: #e50914;
+    }
+    .plan-selector {
+        display: flex;
+        gap: 1rem;
+        margin: 1rem 0;
+    }
+    .plan-card {
+        background-color: #2a2a2a;
+        padding: 1rem;
+        border-radius: 8px;
+        flex: 1;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: border-color 0.3s;
+    }
+    .plan-card:hover {
+        border-color: #e50914;
+    }
+    .plan-card.active {
+        border-color: #e50914;
+        background-color: #333;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    th, td {
+        padding: 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid #333;
+    }
+    th {
+        background-color: #2a2a2a;
+        color: #e50914;
+    }
+    .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        font-weight: bold;
+        display: inline-block;
+    }
+    .status-active {
+        background-color: #155724;
+        color: #28a745;
+    }
+    .status-inactive {
+        background-color: #721c24;
+        color: #dc3545;
+    }
+    .cancel-section {
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 1px solid #333;
+    }
+    .reactivate-message {
+        text-align: center;
+        padding: 2rem;
+        background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+    }
+</style>
+
+<div class="profile-header">
+    <h1>Mi Perfil</h1>
+    <p>Usuario: <strong>{{ user.username }}</strong></p>
+    <p>Email: <strong>{{ user.email }}</strong></p>
+    
+    {% if user.subscription_active %}
+        <p>Plan actual: <strong>{{ user.subscription_type.upper() }}</strong></p>
+        <p>Estado: <span class="status-badge status-active">ACTIVO ✓</span></p>
+        {% if user.subscription_end %}
+            <p>Válido hasta: <strong>{{ user.subscription_end }}</strong></p>
+        {% endif %}
+    {% else %}
+        <p>Plan: <strong style="color: #999;">CANCELADO</strong></p>
+        <p>Estado: <span class="status-badge status-inactive">INACTIVO ✗</span></p>
+        {% if user.subscription_end %}
+            <p>Cancelado el: <strong>{{ user.subscription_end }}</strong></p>
+        {% endif %}
+    {% endif %}
+</div>
+
+<!-- ============================================ -->
+<!--     GESTIÓN DE SUSCRIPCIÓN (TODO EN UNO)    -->
+<!-- ============================================ -->
+
+<div class="profile-section">
+    <h2>🎬 Gestión de Suscripción</h2>
+    
+    {% if current_user.subscription_active %}
+        <!-- SI LA SUSCRIPCIÓN ESTÁ ACTIVA -->
+        
+        <h3 style="margin-top: 1.5rem;">Cambiar Plan</h3>
+        <p style="color: #999;">Selecciona un nuevo plan para tu cuenta</p>
+        
+        <form method="POST" action="{{ url_for('change_plan') }}">
+            <div class="plan-selector">
+                <label class="plan-card {% if user.subscription_type == 'basic' %}active{% endif %}">
+                    <input type="radio" name="plan" value="basic" {% if user.subscription_type == 'basic' %}checked{% endif %} style="display:none;">
+                    <h3>Básico</h3>
+                    <p>$9.99/mes</p>
+                    <p>Calidad SD</p>
+                </label>
+                <label class="plan-card {% if user.subscription_type == 'standard' %}active{% endif %}">
+                    <input type="radio" name="plan" value="standard" {% if user.subscription_type == 'standard' %}checked{% endif %} style="display:none;">
+                    <h3>Estándar</h3>
+                    <p>$13.99/mes</p>
+                    <p>Calidad HD</p>
+                </label>
+                <label class="plan-card {% if user.subscription_type == 'premium' %}active{% endif %}">
+                    <input type="radio" name="plan" value="premium" {% if user.subscription_type == 'premium' %}checked{% endif %} style="display:none;">
+                    <h3>Premium</h3>
+                    <p>$17.99/mes</p>
+                    <p>Calidad 4K</p>
+                </label>
+            </div>
+            <button type="submit" class="btn btn-primary">Actualizar Plan</button>
+        </form>
+        
+        <!-- OPCIÓN DE CANCELAR -->
+        <div class="cancel-section">
+            <h3>¿Ya no quieres continuar?</h3>
+            <p style="color: #999;">Puedes cancelar tu suscripción en cualquier momento</p>
+            <a href="{{ url_for('cancel_subscription') }}" class="btn btn-danger" style="margin-top: 1rem; display: inline-block;">
+                Cancelar Suscripción
+            </a>
+        </div>
+        
+    {% else %}
+        <!-- SI LA SUSCRIPCIÓN ESTÁ CANCELADA -->
+        
+        <div class="reactivate-message">
+            <h3 style="color: #ffc107; margin-bottom: 1rem;">📺 ¡Te extrañamos!</h3>
+            <p style="font-size: 1.1rem; margin: 1rem 0;">Tu suscripción está cancelada</p>
+            <p style="color: #999;">Reactívala para seguir disfrutando de todo el contenido</p>
+        </div>
+        
+        <h3 style="margin-top: 1.5rem;">Selecciona un plan para reactivar</h3>
+        
+        <form method="POST" action="{{ url_for('reactivate_subscription') }}">
+            <div class="plan-selector">
+                <label class="plan-card">
+                    <input type="radio" name="plan" value="basic" checked style="display:none;">
+                    <h3>Básico</h3>
+                    <p>$9.99/mes</p>
+                    <p>Calidad SD</p>
+                </label>
+                <label class="plan-card">
+                    <input type="radio" name="plan" value="standard" style="display:none;">
+                    <h3>Estándar</h3>
+                    <p>$13.99/mes</p>
+                    <p>Calidad HD</p>
+                </label>
+                <label class="plan-card">
+                    <input type="radio" name="plan" value="premium" style="display:none;">
+                    <h3>Premium</h3>
+                    <p>$17.99/mes</p>
+                    <p>Calidad 4K</p>
+                </label>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem;">
+                🎉 Reactivar Mi Suscripción
+            </button>
+        </form>
+    {% endif %}
+</div>
+
+<!-- Historial de Cambios de Suscripción -->
+{% if historial_suscripciones %}
+<div class="profile-section">
+    <h2>Historial de Cambios de Plan</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Plan Anterior</th>
+                <th>Plan Nuevo</th>
+                <th>Fecha de Cambio</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cambio in historial_suscripciones %}
+            <tr>
+                <td>{{ cambio.plan_anterior.upper() }}</td>
+                <td>{{ cambio.plan_nuevo.upper() }}</td>
+                <td>{{ cambio.fecha_cambio }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <a href="{{ url_for('subscription_history') }}" class="btn btn-secondary" style="margin-top: 1rem; display: inline-block;">Ver Historial Completo</a>
+</div>
+{% endif %}
+
+<!-- Historial de Pagos -->
+{% if pagos %}
+<div class="profile-section">
+    <h2>Historial de Pagos</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Monto</th>
+                <th>Método</th>
+                <th>Estado</th>
+                <th>Fecha</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for pago in pagos %}
+            <tr>
+                <td>${{ pago.amount }}</td>
+                <td>{{ pago.payment_method }}</td>
+                <td>{{ pago.status }}</td>
+                <td>{{ pago.payment_date }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<script>
+    // Hacer que las tarjetas de plan sean clickeables
+    document.querySelectorAll('.plan-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const form = this.closest('form');
+            if (form) {
+                form.querySelectorAll('.plan-card').forEach(c => c.classList.remove('active'));
+            }
+            this.classList.add('active');
+            this.querySelector('input[type="radio"]').checked = true;
+        });
+    });
+</script>
+{% endblock %}

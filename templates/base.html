@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Mi App{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    {% block extra_css %}{% endblock %}
+  </head>
+  <body>
+    <nav class="navbar">
+      <a class="nav-brand" href="{{ url_for('home') }}">Netflix</a>
+      <div class="nav-links">
+        <a href="{{ url_for('home') }}">Inicio</a>
+        {% if current_user.is_authenticated %}
+          <a href="{{ url_for('profile') }}">Perfil</a>
+          <a href="{{ url_for('subscription_history') }}">Historial suscripción</a>
+          <a href="{{ url_for('admin_users') }}">Admin</a>
+          <a href="{{ url_for('logout') }}">Cerrar sesión</a>
+        {% else %}
+          <a href="{{ url_for('login') }}">Iniciar sesión</a>
+          <a href="{{ url_for('register') }}">Registro</a>
+        {% endif %}
+      </div>
+    </nav>
+
+    <main>
+      <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flashes">
+              {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <p>© {{ current_user.username if current_user.is_authenticated else 'MiApp' }}</p>
+    </footer>
+  </body>
+  </html>

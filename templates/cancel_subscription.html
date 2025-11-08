@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Cancelar Suscripción - Netflix{% endblock %}
+
+{% block content %}
+<style>
+    .cancel-container {
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #1a1a1a;
+        padding: 2rem;
+        border-radius: 8px;
+    }
+    .warning-box {
+        background-color: #856404;
+        border: 1px solid #ffc107;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+    }
+    .warning-box h3 {
+        color: #ffc107;
+        margin-bottom: 1rem;
+    }
+    .confirm-input {
+        background-color: #2a2a2a;
+        border: 2px solid #666;
+        color: #fff;
+        padding: 0.75rem;
+        width: 100%;
+        border-radius: 4px;
+        font-size: 1rem;
+        margin: 1rem 0;
+    }
+    .confirm-input:focus {
+        outline: none;
+        border-color: #e50914;
+    }
+    textarea {
+        background-color: #2a2a2a;
+        border: 2px solid #666;
+        color: #fff;
+        padding: 0.75rem;
+        width: 100%;
+        border-radius: 4px;
+        font-size: 1rem;
+        min-height: 100px;
+        resize: vertical;
+        margin: 1rem 0;
+    }
+    textarea:focus {
+        outline: none;
+        border-color: #e50914;
+    }
+    .consequences {
+        background-color: #2a2a2a;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+    }
+    .consequences ul {
+        list-style: none;
+        padding: 0;
+    }
+    .consequences li {
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #333;
+    }
+    .consequences li:last-child {
+        border-bottom: none;
+    }
+    .button-group {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+</style>
+
+<div class="cancel-container">
+    <h1>Cancelar Suscripción</h1>
+    
+    <div class="warning-box">
+        <h3>⚠️ ¿Estás seguro?</h3>
+        <p>Cancelar tu suscripción significa que perderás acceso a:</p>
+        <ul>
+            <li>✗ Todo el catálogo de películas y series</li>
+            <li>✗ Contenido exclusivo</li>
+            <li>✗ Visualización sin anuncios</li>
+            <li>✗ Calidad {{ current_user.subscription_type.upper() }}</li>
+        </ul>
+    </div>
+
+    <div class="consequences">
+        <h3>¿Qué pasará después?</h3>
+        <ul>
+            <li>📅 Tu suscripción se cancelará inmediatamente</li>
+            <li>🔒 Perderás acceso al contenido</li>
+            <li>💾 Tu cuenta se mantendrá guardada</li>
+            <li>🔄 Puedes reactivarla cuando quieras</li>
+        </ul>
+    </div>
+
+    <form method="POST">
+        <h3>¿Por qué cancelas? (Opcional)</h3>
+        <p style="color: #999; font-size: 0.9rem;">Ayúdanos a mejorar contándonos el motivo</p>
+        <textarea name="motivo" placeholder="Ejemplo: Muy caro, no uso el servicio, encontré alternativa, etc."></textarea>
+
+        <h3>Confirmar cancelación</h3>
+        <p style="color: #999; font-size: 0.9rem;">Escribe <strong>CANCELAR</strong> para confirmar</p>
+        <input type="text" name="confirmar" class="confirm-input" placeholder="Escribe CANCELAR aquí" required>
+
+        <div class="button-group">
+            <button type="submit" class="btn btn-danger" style="flex: 1;">
+                Cancelar Mi Suscripción
+            </button>
+            <a href="{{ url_for('profile') }}" class="btn btn-secondary" style="flex: 1; text-align: center; text-decoration: none; line-height: 2.5;">
+                Mantener Suscripción
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

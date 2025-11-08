@@ -1,0 +1,5 @@
+/* Admin specific styles - minimal, uses base.css for main theme */
+.actions{white-space:nowrap}
+.data-table td.actions{min-width:180px}
+.data-table tr:nth-child(even){background:rgba(255,255,255,0.02)}
+.data-table tr:hover{background:rgba(255,255,255,0.03)}

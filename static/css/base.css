@@ -1,0 +1,258 @@
+/* Colores y tipografía basados en login.css: gradiente rojo -> oscuro, texto claro */
+:root {
+    --primary: #e50914;
+    --dark: #221f1f;
+    --text: #fff;
+    --muted: antiquewhite;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    margin: 0;
+    font-family: Montserrat, Arial, sans-serif;
+    background: linear-gradient(to top, var(--primary) 0%, var(--dark) 100%);
+    background-attachment: fixed; /* ESTO EVITA LA REPETICIÓN */
+    background-repeat: no-repeat; /* EXTRA: EVITA REPETICIÓN */
+    color: var(--muted);
+    min-height: 100vh; /* CAMBIA height por min-height */
+}
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: rgba(0, 0, 0, 0.15);
+}
+
+.nav-brand {
+    color: var(--text);
+    font-weight: 700;
+    text-decoration: none;
+    font-size: 1.1rem;
+}
+
+.nav-links a {
+    color: var(--text);
+    margin-left: 12px;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.nav-links a:hover {
+    color: var(--primary);
+}
+
+.container {
+    max-width: 1100px;
+    margin: 2rem auto;
+    padding: 1rem;
+}
+
+.flashes {
+    margin-bottom: 1rem;
+}
+
+.flash {
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-bottom: 6px;
+}
+
+.flash.success {
+    background: #2a8a3a;
+    color: #fff;
+}
+
+.flash.warning {
+    background: #f0ad4e;
+    color: #111;
+}
+
+.flash.danger {
+    background: #c0392b;
+    color: #fff;
+}
+
+.flash.info {
+    background: #3498db;
+    color: #fff;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.data-table th,
+.data-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.data-table thead th {
+    background: rgba(0, 0, 0, 0.2);
+    color: var(--text);
+}
+
+button.btn {
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn.danger {
+    background: var(--primary);
+    color: #fff;
+}
+
+.btn.danger:hover {
+    background: #f40612;
+}
+
+.btn.danger-outline {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn.danger-outline:hover {
+    background: rgba(229, 9, 20, 0.1);
+    border-color: var(--primary);
+}
+
+.site-footer {
+    padding: 1rem;
+    text-align: center;
+    opacity: 0.9;
+}
+
+/* ========================================
+   NAVBAR - NETFLIX STYLE
+   ======================================== */
+
+:root {
+    --netflix-red: #E50914;
+    --netflix-red-hover: #f40612;
+    --netflix-black: #141414;
+    --netflix-white: #ffffff;
+    --netflix-light-gray: #808080;
+}
+
+/* ========================================
+   NAVBAR PRINCIPAL
+   ======================================== */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 2rem;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.8) 100%);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+/* ========================================
+   LOGO NETFLIX
+   ======================================== */
+.nav-brand {
+    color: var(--netflix-red);
+    font-weight: 900;
+    text-decoration: none;
+    font-size: 1.5rem;
+    letter-spacing: -2px;
+    transition: all 0.2s ease;
+}
+
+.nav-brand:hover {
+    color: var(--netflix-red-hover);
+    text-shadow: 0 0 20px rgba(229, 9, 20, 0.5);
+}
+
+/* ========================================
+   ENLACES DE NAVEGACIÓN
+   ======================================== */
+.nav-links {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+}
+
+.nav-links a {
+    color: var(--netflix-white);
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    position: relative;
+    padding: 0.5rem 0;
+}
+
+.nav-links a:hover {
+    color: var(--netflix-red);
+}
+
+.nav-links a::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--netflix-red);
+    transition: width 0.3s ease;
+}
+
+.nav-links a:hover::after {
+    width: 100%;
+}
+
+/* ========================================
+   RESPONSIVE NAVBAR
+   ======================================== */
+@media (max-width: 768px) {
+    .navbar {
+        padding: 0.75rem 1rem;
+        flex-wrap: wrap;
+    }
+    
+    .nav-brand {
+        font-size: 1.3rem;
+    }
+    
+    .nav-links {
+        gap: 1rem;
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .navbar {
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .nav-brand {
+        font-size: 1.2rem;
+    }
+    
+    .nav-links {
+        gap: 0.75rem;
+        font-size: 0.75rem;
+    }
+    
+    .nav-links a {
+        padding: 0.25rem 0;
+    }
+}

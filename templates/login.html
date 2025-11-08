@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="">
     <title>Iniciar sesión - Netflix</title>
-    <link rel="stylesheet" href="../static/css/login.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
 </head>
     <body>
         
@@ -14,30 +14,32 @@
         </nav>
 
         <main>
-            <form>
-                <h1 class="cabeza1">Enter your info to sign in</h1>
-                <h2 class="cabeza2">Or get started with a new account.</h2>
+            <form method="post" action="{{ url_for('login') }}">
+                <h1 class="cabeza1">Inicia sesión</h1>
+                <h2 class="cabeza2">Introduce tus datos para continuar</h2>
+
+                <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
+
                 <div>
-                    <label for ="email"></label>
-                    <input type="text" id="email" name="email" required placeholder="Email or phone number">
+                    <label for ="username" class="sr-only">Usuario / Email</label>
+                    <input type="text" id="username" name="username" required placeholder="Usuario o email">
                 </div>
                 <div>
-                    <label for ="password"></label>
-                    <input type="password" id="password" name="password" required placeholder="Password">
+                    <label for ="password" class="sr-only">Contraseña</label>
+                    <input type="password" id="password" name="password" required placeholder="Contraseña">
                 </div>
                 <div class="nav-button">
-                    <a href="/logout" class="nav-button"
-            >Continue</a>
+                    <button type="submit" class="nav-button">Continuar</button>
                 </div>
                 <div>
                     <input type="checkbox" id="remember">
-                    <label for="remember">Remember me</label>
+                    <label for="remember">Recuérdame</label>
                 </div>
                 <div>
                     <a href="#">¿Necesitas ayuda?</a>
                 </div>
                 <div>
-                    <span>¿Nuevo en Netflix? <a href="#">Suscríbete Ahora</a>.</span>
+                    <span>¿Nuevo en Netflix? <a href="{{ url_for('register') }}">Suscríbete ahora</a>.</span>
                 </div>
             </form>
         </main>
