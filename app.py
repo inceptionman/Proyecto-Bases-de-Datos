@@ -711,7 +711,7 @@ def series():
             ORDER BY imdb_rating DESC NULLS LAST
         """)).fetchall()
         
-        return render_template('series.html', series=series_list) # 'series_list' para no confundir
+        return render_template('series.html', series_list=series_list) # 'series_list' para no confundir
     except Exception as e:
         flash('Error al cargar series', 'danger')
         print(f"Error en series: {e}")
@@ -838,6 +838,40 @@ def add_to_watchlist():
         db.session.rollback()
         print(f"Error al agregar a watchlist: {e}")
         return {'success': False, 'message': 'Error al agregar'}, 500
+
+
+@app.route('/remove-from-watchlist', methods=['POST'])
+@login_required
+def remove_from_watchlist():
+    """API para eliminar un elemento de la watchlist por su id (watch_list.id)"""
+    try:
+        data = request.get_json()
+        watchlist_id = data.get('watchlist_id')
+        if not watchlist_id:
+            return {'success': False, 'message': 'watchlist_id no proporcionado'}, 400
+
+        # Obtener perfil principal del usuario
+        profile = db.session.execute(text("""
+            SELECT id FROM profiles
+            WHERE user_id = :user_id
+            ORDER BY is_main DESC, created_at ASC
+            LIMIT 1
+        """), {'user_id': current_user.id}).fetchone()
+
+        if not profile:
+            return {'success': False, 'message': 'No tienes perfiles creados'}, 400
+
+        res = db.session.execute(text("""
+            DELETE FROM watch_list
+            WHERE id = :wid AND profile_id = :profile_id
+        """), {'wid': watchlist_id, 'profile_id': profile.id})
+
+        db.session.commit()
+        return {'success': True, 'message': 'Eliminado de tu lista'}
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error al eliminar de watchlist: {e}")
+        return {'success': False, 'message': 'Error al eliminar'}, 500
 
 
 @app.route('/movie/<int:movie_id>')

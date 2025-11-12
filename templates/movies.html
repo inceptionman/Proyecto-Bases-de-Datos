@@ -15,24 +15,30 @@
     {% if movies and movies|length > 0 %}
         <div class="catalog-grid">
             {% for movie in movies %}
-                <a href="{{ url_for('movie_detail', movie_id=movie.id) }}" class="card-link">
-                    <div class="card">
+                <div class="card">
+                    <a href="{{ url_for('movie_detail', movie_id=movie.id) }}" class="card-link">
                         <img src="{{ movie.image_url if movie.image_url else 'https://via.placeholder.com/300x450?text=' + movie.title }}" alt="{{ movie.title }}">
-                        
-                        {% if movie.imdb_rating %}
-                        <div class="card-rating">
-                            <i class="fas fa-star"></i> {{ movie.imdb_rating }}
-                        </div>
-                        {% endif %}
+                    </a>
 
-                        <div class="card-body">
-                            <h3 class="card-title">{{ movie.title }}</h3>
-                            <p class="card-desc">
-                                {{ movie.release_year }} • {{ movie.age_rating }}
-                            </p>
+                    {% if movie.imdb_rating %}
+                    <div class="card-rating">
+                        <i class="fas fa-star"></i> {{ movie.imdb_rating }}
+                    </div>
+                    {% endif %}
+
+                    <div class="card-body">
+                        <h3 class="card-title">{{ movie.title }}</h3>
+                        <p class="card-desc">{{ movie.release_year }} • {{ movie.age_rating }}</p>
+                        <div style="display:flex; gap:0.5rem; margin-top:0.75rem;">
+                            {% if current_user.is_authenticated %}
+                                <button class="btn btn-sm btn-outline-light btn-add-watchlist" data-id="{{ movie.id }}" data-type="movie">Añadir a Mi Lista</button>
+                            {% else %}
+                                <a class="btn btn-sm btn-outline-light" href="{{ url_for('login') }}">Inicia sesión para guardar</a>
+                            {% endif %}
+                            <a class="btn btn-sm btn-light" href="{{ url_for('movie_detail', movie_id=movie.id) }}">Ver</a>
                         </div>
                     </div>
-                </a>
+                </div>
             {% endfor %}
         </div>
     {% else %}
@@ -43,4 +49,41 @@
         </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Añadir a Mi Lista para películas
+    document.querySelectorAll('.btn-add-watchlist').forEach(btn => {
+        btn.addEventListener('click', async function(e) {
+            e.preventDefault();
+            const contentId = this.dataset.id;
+            const contentType = this.dataset.type;
+            this.disabled = true;
+            const original = this.innerText;
+            this.innerText = 'Guardando...';
+            try {
+                const res = await fetch('{{ url_for("add_to_watchlist") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content_id: contentId, content_type: contentType })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    showToast(data.message || 'Agregado a tu lista', 'success');
+                    this.innerText = 'Guardado';
+                } else {
+                    showToast(data.message || 'No se pudo agregar', 'warning');
+                    this.innerText = original;
+                    this.disabled = false;
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Error de red al guardar', 'danger');
+                this.innerText = original;
+                this.disabled = false;
+            }
+        });
+    });
+</script>
 {% endblock %}

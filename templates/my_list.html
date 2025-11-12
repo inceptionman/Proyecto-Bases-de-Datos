@@ -26,26 +26,28 @@
     {% if watchlist and watchlist|length > 0 %}
         <div class="catalog-grid">
             {% for item in watchlist %}
-                <a href="{{ url_for('movie_detail', movie_id=item.movie_id) if item.content_type == 'movie' else url_for('series_detail', series_id=item.series_id) }}" class="card-link">
-                    <div class="card">
+                <div class="card">
+                    <a href="{{ url_for('movie_detail', movie_id=item.movie_id) if item.content_type == 'movie' else url_for('series_detail', series_id=item.series_id) }}" class="card-link">
                         <img src="{{ item.image_url if item.image_url else 'https://via.placeholder.com/300x450?text=' + item.title }}" alt="{{ item.title }}">
-                        
-                        <div class="card-badge">
-                            {% if item.content_type == 'movie' %}
-                                <i class="fas fa-film"></i> Película
-                            {% else %}
-                                <i class="fas fa-tv"></i> Serie
-                            {% endif %}
-                        </div>
+                    </a>
 
-                        <div class="card-body">
-                            <h3 class="card-title">{{ item.title }}</h3>
-                            <p class="card-desc">
-                                {{ item.description[:100] }}{% if item.description|length > 100 %}...{% endif %}
-                            </p>
+                    <div class="card-badge">
+                        {% if item.content_type == 'movie' %}
+                            <i class="fas fa-film"></i> Película
+                        {% else %}
+                            <i class="fas fa-tv"></i> Serie
+                        {% endif %}
+                    </div>
+
+                    <div class="card-body">
+                        <h3 class="card-title">{{ item.title }}</h3>
+                        <p class="card-desc">{{ item.description[:100] }}{% if item.description|length > 100 %}...{% endif %}</p>
+                        <div style="display:flex; gap:0.5rem; margin-top:0.75rem;">
+                            <a class="btn btn-sm btn-light" href="{{ url_for('movie_detail', movie_id=item.movie_id) if item.content_type == 'movie' else url_for('series_detail', series_id=item.series_id) }}">Ver</a>
+                            <button class="btn btn-sm btn-outline-danger btn-remove-watchlist" data-wid="{{ item.id }}">Quitar</button>
                         </div>
                     </div>
-                </a>
+                </div>
             {% endfor %}
         </div>
     {% else %}
@@ -59,4 +61,34 @@
         </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.querySelectorAll('.btn-remove-watchlist').forEach(btn => {
+        btn.addEventListener('click', async function(e) {
+            e.preventDefault();
+            const wid = this.dataset.wid;
+            if (!confirm('¿Quitar este elemento de tu lista?')) return;
+            try {
+                const res = await fetch("{{ url_for('remove_from_watchlist') }}", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ watchlist_id: wid })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    showToast(data.message || 'Eliminado de tu lista', 'success');
+                    // remove card from DOM
+                    this.closest('.card').remove();
+                } else {
+                    showToast(data.message || 'No se pudo eliminar', 'warning');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Error de red al eliminar', 'danger');
+            }
+        });
+    });
+</script>
 {% endblock %}
