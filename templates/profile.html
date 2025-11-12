@@ -2,8 +2,351 @@
 
 {% block title %}Mi Perfil - Netflix{% endblock %}
 
-{% block content %}
+{% block extra_css %}
 <style>
+    .profile-hero {
+        background: linear-gradient(135deg, rgba(229, 9, 20, 0.3) 0%, rgba(131, 16, 16, 0.3) 100%);
+        padding: 3rem 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        border-left: 4px solid #e50914;
+    }
+    .profile-hero h1 {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 1rem;
+    }
+    .profile-info {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    .info-card {
+        background-color: #2f2f2f;
+        padding: 1.5rem;
+        border-radius: 8px;
+    }
+    .info-card label {
+        color: #e50914;
+        font-weight: bold;
+        display: block;
+        margin-bottom: 0.5rem;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+    }
+    .info-card p {
+        color: #fff;
+        font-size: 1.1rem;
+        margin: 0;
+    }
+    .section {
+        background-color: #2f2f2f;
+        padding: 2rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        border-top: 3px solid #e50914;
+    }
+    .section h2 {
+        color: #e50914;
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .status-badge {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 0.9rem;
+    }
+    .status-active {
+        background-color: rgba(40, 167, 69, 0.2);
+        color: #51cf66;
+        border: 1px solid #51cf66;
+    }
+    .status-inactive {
+        background-color: rgba(220, 53, 69, 0.2);
+        color: #ff6b6b;
+        border: 1px solid #ff6b6b;
+    }
+    .plan-selector {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin: 1.5rem 0;
+    }
+    .plan-card {
+        background-color: #1a1a1a;
+        padding: 1.5rem;
+        border-radius: 8px;
+        border: 2px solid #444;
+        cursor: pointer;
+        transition: all 0.3s;
+        position: relative;
+    }
+    .plan-card:hover {
+        border-color: #e50914;
+        transform: translateY(-5px);
+    }
+    .plan-card.active {
+        border-color: #e50914;
+        background-color: rgba(229, 9, 20, 0.1);
+    }
+    .plan-card input[type="radio"] {
+        display: none;
+    }
+    .plan-card h3 {
+        color: #fff;
+        font-weight: bold;
+        margin: 0 0 0.5rem 0;
+    }
+    .plan-card p {
+        color: #aaa;
+        margin: 0.25rem 0;
+        font-size: 0.9rem;
+    }
+    .plan-price {
+        color: #e50914;
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin: 0.5rem 0;
+    }
+    .btn-action {
+        width: 100%;
+        padding: 0.8rem;
+        border: none;
+        border-radius: 4px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin-top: 1rem;
+        font-size: 1rem;
+    }
+    .btn-primary-netflix {
+        background-color: #e50914;
+        color: #fff;
+    }
+    .btn-primary-netflix:hover {
+        background-color: #c4070f;
+    }
+    .btn-danger {
+        background-color: rgba(220, 53, 69, 0.2);
+        color: #ff6b6b;
+        border: 1px solid #ff6b6b;
+    }
+    .btn-danger:hover {
+        background-color: rgba(220, 53, 69, 0.4);
+    }
+    .table {
+        color: #fff;
+    }
+    .table thead {
+        background-color: #1a1a1a;
+        border-bottom: 2px solid #e50914;
+    }
+    .table thead th {
+        color: #e50914;
+        font-weight: bold;
+        border: none;
+    }
+    .table tbody tr {
+        border-bottom: 1px solid #444;
+    }
+    .table tbody tr:hover {
+        background-color: rgba(229, 9, 20, 0.1);
+    }
+    .reactivate-box {
+        background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(229, 9, 20, 0.1) 100%);
+        border-left: 4px solid #ffc107;
+        padding: 2rem;
+        border-radius: 8px;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .reactivate-box h3 {
+        color: #ffc107;
+        margin-bottom: 0.5rem;
+    }
+    .reactivate-box p {
+        color: #aaa;
+        margin: 0.5rem 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-hero">
+    <h1><i class="fas fa-user-circle"></i> Mi Perfil</h1>
+    <div class="profile-info">
+        <div class="info-card">
+            <label>👤 Usuario</label>
+            <p>{{ user.username }}</p>
+        </div>
+        <div class="info-card">
+            <label>📧 Correo Electrónico</label>
+            <p>{{ user.email }}</p>
+        </div>
+        <div class="info-card">
+            <label>📺 Estado de Suscripción</label>
+            {% if user.subscription_active %}
+                <span class="status-badge status-active"><i class="fas fa-check-circle"></i> ACTIVO</span>
+            {% else %}
+                <span class="status-badge status-inactive"><i class="fas fa-times-circle"></i> CANCELADO</span>
+            {% endif %}
+        </div>
+        {% if user.subscription_active %}
+        <div class="info-card">
+            <label>🎬 Plan Actual</label>
+            <p>{{ user.subscription_type.upper() if user.subscription_type else 'N/A' }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- GESTIÓN DE SUSCRIPCIÓN -->
+<div class="section">
+    <h2><i class="fas fa-cog"></i> Gestión de Suscripción</h2>
+    
+    {% if user.subscription_active %}
+        <!-- SUSCRIPCIÓN ACTIVA -->
+        
+        <h3 style="color: #fff; margin-bottom: 1rem;"><i class="fas fa-exchange-alt"></i> Cambiar Plan</h3>
+        <p style="color: #aaa; margin-bottom: 1.5rem;">Selecciona un nuevo plan para tu cuenta. Los cambios se aplicarán en tu próximo período de facturación.</p>
+        
+        <form method="POST" action="{{ url_for('change_plan') if url_for('change_plan') is defined else '#' }}">
+            <div class="plan-selector">
+                <label class="plan-card {% if user.subscription_type == 'basic' %}active{% endif %}">
+                    <input type="radio" name="plan" value="basic" {% if user.subscription_type == 'basic' %}checked{% endif %}>
+                    <h3>📺 Básico</h3>
+                    <div class="plan-price">$9.99</div>
+                    <p>/mes</p>
+                    <p style="margin-top: 0.5rem; font-size: 0.8rem; color: #999;">Resolución SD</p>
+                </label>
+                <label class="plan-card {% if user.subscription_type == 'standard' %}active{% endif %}">
+                    <input type="radio" name="plan" value="standard" {% if user.subscription_type == 'standard' %}checked{% endif %}>
+                    <h3>🎬 Estándar</h3>
+                    <div class="plan-price">$13.99</div>
+                    <p>/mes</p>
+                    <p style="margin-top: 0.5rem; font-size: 0.8rem; color: #999;">Resolución HD</p>
+                </label>
+                <label class="plan-card {% if user.subscription_type == 'premium' %}active{% endif %}">
+                    <input type="radio" name="plan" value="premium" {% if user.subscription_type == 'premium' %}checked{% endif %}>
+                    <h3>⭐ Premium</h3>
+                    <div class="plan-price">$17.99</div>
+                    <p>/mes</p>
+                    <p style="margin-top: 0.5rem; font-size: 0.8rem; color: #999;">Resolución 4K</p>
+                </label>
+            </div>
+            <button type="submit" class="btn-action btn-primary-netflix"><i class="fas fa-check"></i> Actualizar Plan</button>
+        </form>
+        
+        <!-- OPCIÓN DE CANCELAR -->
+        <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #444;">
+            <h3 style="color: #fff;"><i class="fas fa-exclamation-triangle"></i> Zona de Riesgo</h3>
+            <p style="color: #aaa; margin-bottom: 1rem;">¿Ya no quieres continuar? Puedes cancelar tu suscripción en cualquier momento. No hay cargos ocultos.</p>
+            <a href="{{ url_for('cancel_subscription') if url_for('cancel_subscription') is defined else '#' }}" class="btn-action btn-danger">
+                <i class="fas fa-times-circle"></i> Cancelar Suscripción
+            </a>
+        </div>
+        
+    {% else %}
+        <!-- SUSCRIPCIÓN CANCELADA - REACTIVAR -->
+        
+        <div class="reactivate-box">
+            <h3><i class="fas fa-star"></i> ¡Te extrañamos!</h3>
+            <p>Tu suscripción está cancelada</p>
+            <p style="color: #999; font-size: 0.9rem;">Reactívala para seguir disfrutando de todo nuestro contenido</p>
+        </div>
+        
+        <h3 style="color: #fff; margin-bottom: 1rem;"><i class="fas fa-redo"></i> Selecciona un plan para reactivar</h3>
+        
+        <form method="POST" action="{{ url_for('reactivate_subscription') if url_for('reactivate_subscription') is defined else '#' }}">
+            <div class="plan-selector">
+                <label class="plan-card">
+                    <input type="radio" name="plan" value="basic" checked>
+                    <h3>📺 Básico</h3>
+                    <div class="plan-price">$9.99</div>
+                    <p>/mes</p>
+                    <p style="margin-top: 0.5rem; font-size: 0.8rem; color: #999;">Resolución SD</p>
+                </label>
+                <label class="plan-card">
+                    <input type="radio" name="plan" value="standard">
+                    <h3>🎬 Estándar</h3>
+                    <div class="plan-price">$13.99</div>
+                    <p>/mes</p>
+                    <p style="margin-top: 0.5rem; font-size: 0.8rem; color: #999;">Resolución HD</p>
+                </label>
+                <label class="plan-card">
+                    <input type="radio" name="plan" value="premium">
+                    <h3>⭐ Premium</h3>
+                    <div class="plan-price">$17.99</div>
+                    <p>/mes</p>
+                    <p style="margin-top: 0.5rem; font-size: 0.8rem; color: #999;">Resolución 4K</p>
+                </label>
+            </div>
+            <button type="submit" class="btn-action btn-primary-netflix" style="font-size: 1.1rem; padding: 1rem;">
+                <i class="fas fa-check-circle"></i> Reactivar Mi Suscripción
+            </button>
+        </form>
+    {% endif %}
+</div>
+
+<!-- Historial de Pagos -->
+{% if pagos and pagos|length > 0 %}
+<div class="section">
+    <h2><i class="fas fa-credit-card"></i> Historial de Pagos</h2>
+    <div style="overflow-x: auto;">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th><i class="fas fa-dollar-sign"></i> Monto</th>
+                    <th><i class="fas fa-credit-card"></i> Método</th>
+                    <th><i class="fas fa-check-circle"></i> Estado</th>
+                    <th><i class="fas fa-calendar"></i> Fecha</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pago in pagos %}
+                <tr>
+                    <td><strong>${{ pago.amount }}</strong></td>
+                    <td>{{ pago.payment_method or 'N/A' }}</td>
+                    <td>
+                        {% if pago.status == 'completed' %}
+                            <span style="color: #51cf66;">✓ Completado</span>
+                        {% elif pago.status == 'pending' %}
+                            <span style="color: #ffc107;">⏳ Pendiente</span>
+                        {% else %}
+                            <span style="color: #ff6b6b;">✗ {{ pago.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ pago.payment_date }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<script>
+    // Hacer que las tarjetas de plan sean clickeables
+    document.querySelectorAll('.plan-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const form = this.closest('form');
+            if (form) {
+                form.querySelectorAll('.plan-card').forEach(c => c.classList.remove('active'));
+            }
+            this.classList.add('active');
+            this.querySelector('input[type="radio"]').checked = true;
+        });
+    });
+</script>
+
+{% endblock %}
     .profile-header {
         background: linear-gradient(to right, #e50914, #831010);
         padding: 2rem;

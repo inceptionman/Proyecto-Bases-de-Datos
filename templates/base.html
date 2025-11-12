@@ -3,24 +3,136 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}Mi App{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <title>{% block title %}Netflix - Películas y Series{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        background-color: #141414;
+        color: #ffffff;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      }
+      .netflix-nav {
+        background: linear-gradient(180deg, rgba(0,0,0,0.7) 10%, rgba(0,0,0,0));
+        padding: 1rem 2rem;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        border-bottom: 1px solid #222;
+      }
+      .netflix-logo {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #e50914;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+      }
+      .netflix-logo i {
+        margin-right: 0.5rem;
+      }
+      .nav-links {
+        display: flex;
+        gap: 1.5rem;
+        align-items: center;
+      }
+      .nav-links a {
+        color: #fff;
+        text-decoration: none;
+        transition: color 0.3s;
+        font-size: 0.95rem;
+      }
+      .nav-links a:hover {
+        color: #e50914;
+      }
+      .user-menu {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+      .user-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 4px;
+        background: #e50914;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      main {
+        min-height: calc(100vh - 120px);
+      }
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+      .alert {
+        margin-bottom: 1.5rem;
+        border-radius: 4px;
+        border-left: 4px solid #e50914;
+      }
+      .alert-warning {
+        background-color: #3d2d21;
+        color: #ffc107;
+        border-left-color: #ffc107;
+      }
+      .alert-success {
+        background-color: #1d3a1d;
+        color: #28a745;
+        border-left-color: #28a745;
+      }
+      .alert-danger {
+        background-color: #3d1d1d;
+        color: #dc3545;
+        border-left-color: #dc3545;
+      }
+      .site-footer {
+        background-color: #000;
+        padding: 2rem;
+        text-align: center;
+        border-top: 1px solid #222;
+        margin-top: 3rem;
+      }
+      .site-footer p {
+        margin: 0;
+        font-size: 0.9rem;
+        color: #808080;
+      }
+    </style>
     {% block extra_css %}{% endblock %}
   </head>
   <body>
-    <nav class="navbar">
-      <a class="nav-brand" href="{{ url_for('home') }}">Netflix</a>
-      <div class="nav-links">
-        <a href="{{ url_for('home') }}">Inicio</a>
-        {% if current_user.is_authenticated %}
-          <a href="{{ url_for('profile') }}">Perfil</a>
-          <a href="{{ url_for('subscription_history') }}">Historial suscripción</a>
-          <a href="{{ url_for('admin_users') }}">Admin</a>
-          <a href="{{ url_for('logout') }}">Cerrar sesión</a>
-        {% else %}
-          <a href="{{ url_for('login') }}">Iniciar sesión</a>
-          <a href="{{ url_for('register') }}">Registro</a>
-        {% endif %}
+    <nav class="netflix-nav">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <a class="netflix-logo" href="{{ url_for('home') }}">
+          <i class="fas fa-play"></i> NETFLIX
+        </a>
+        <div class="nav-links">
+          <a href="{{ url_for('home') }}"><i class="fas fa-home"></i> Inicio</a>
+          {% if current_user.is_authenticated %}
+            <a href="{{ url_for('profile') }}"><i class="fas fa-user"></i> Perfil</a>
+            <a href="{{ url_for('subscription_history') }}"><i class="fas fa-history"></i> Suscripción</a>
+            {% if current_user.is_admin %}
+              <a href="{{ url_for('admin_users') }}"><i class="fas fa-cog"></i> Admin</a>
+            {% endif %}
+            <div class="user-menu">
+              <span>{{ current_user.username }}</span>
+              <div class="user-avatar">{{ current_user.username[0].upper() }}</div>
+              <a href="{{ url_for('logout') }}" style="color: #e50914;"><i class="fas fa-sign-out-alt"></i> Salir</a>
+            </div>
+          {% else %}
+            <a href="{{ url_for('login') }}"><i class="fas fa-sign-in-alt"></i> Iniciar sesión</a>
+            <a href="{{ url_for('register') }}" style="color: #e50914;"><i class="fas fa-user-plus"></i> Registro</a>
+          {% endif %}
+        </div>
       </div>
     </nav>
 
@@ -28,11 +140,12 @@
       <div class="container">
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
-            <div class="flashes">
-              {% for category, message in messages %}
-                <div class="flash {{ category }}">{{ message }}</div>
-              {% endfor %}
-            </div>
+            {% for category, message in messages %}
+              <div class="alert alert-{{ 'danger' if category == 'error' else category }}" role="alert">
+                <i class="fas fa-{{ 'exclamation-circle' if category == 'danger' else 'check-circle' }}"></i>
+                {{ message }}
+              </div>
+            {% endfor %}
           {% endif %}
         {% endwith %}
 
@@ -41,7 +154,9 @@
     </main>
 
     <footer class="site-footer">
-      <p>© {{ current_user.username if current_user.is_authenticated else 'MiApp' }}</p>
+      <p>© 2024 Netflix Clone - Proyecto Base de Datos. Todos los derechos reservados.</p>
     </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   </body>
-  </html>
+</html>

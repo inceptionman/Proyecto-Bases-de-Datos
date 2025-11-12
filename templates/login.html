@@ -1,47 +1,247 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="">
+    <meta name="description" content="Inicia sesión en Netflix">
     <title>Iniciar sesión - Netflix</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: linear-gradient(135deg, #141414 0%, #1a1a1a 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .navbar-netflix {
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .netflix-logo {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #e50914;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+        .netflix-logo i {
+            margin-right: 0.5rem;
+        }
+        .main-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+        .login-box {
+            background-color: rgba(0, 0, 0, 0.75);
+            padding: 3rem;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+        .login-box h1 {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: #fff;
+        }
+        .login-box p {
+            color: #aaa;
+            margin-bottom: 2rem;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #fff;
+            font-weight: 500;
+        }
+        .form-group input[type="text"],
+        .form-group input[type="password"],
+        .form-group input[type="email"] {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background-color: #333;
+            border: 1px solid #555;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 1rem;
+            transition: border-color 0.3s, background-color 0.3s;
+        }
+        .form-group input[type="text"]:focus,
+        .form-group input[type="password"]:focus,
+        .form-group input[type="email"]:focus {
+            outline: none;
+            background-color: #3d3d3d;
+            border-color: #e50914;
+        }
+        .form-group input::placeholder {
+            color: #999;
+        }
+        .btn-login {
+            width: 100%;
+            padding: 0.8rem;
+            background-color: #e50914;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .btn-login:hover {
+            background-color: #c4070f;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+        .checkbox-group input[type="checkbox"] {
+            cursor: pointer;
+        }
+        .checkbox-group label {
+            color: #fff;
+            margin: 0;
+            cursor: pointer;
+        }
+        .forgot-password {
+            text-align: center;
+            margin-top: 1rem;
+        }
+        .forgot-password a {
+            color: #aaa;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .forgot-password a:hover {
+            color: #e50914;
+        }
+        .signup-section {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid #444;
+        }
+        .signup-section span {
+            color: #aaa;
+        }
+        .signup-section a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: bold;
+            transition: color 0.3s;
+        }
+        .signup-section a:hover {
+            color: #e50914;
+        }
+        .alerts {
+            margin-bottom: 2rem;
+        }
+        .alert {
+            padding: 0.75rem 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        .alert-danger {
+            background-color: rgba(220, 53, 69, 0.2);
+            color: #ff6b6b;
+            border-left: 4px solid #dc3545;
+        }
+        .alert-success {
+            background-color: rgba(40, 167, 69, 0.2);
+            color: #51cf66;
+            border-left: 4px solid #28a745;
+        }
+    </style>
 </head>
-    <body>
-        
-        <nav class="Logo-Netflix">
-            <img src="https://media.geeksforgeeks.org/wp-content/uploads/20240313101431/Netflix-Logo.png" alt="Netflix Logo" width="180">
-        </nav>
+<body>
+    <div class="navbar-netflix">
+        <a class="netflix-logo" href="{{ url_for('home') }}">
+            <i class="fas fa-play"></i> NETFLIX
+        </a>
+    </div>
 
-        <main>
+    <div class="main-container">
+        <div class="login-box">
+            <h1>Inicia sesión</h1>
+            <p>Introduce tus datos para continuar</p>
+
+            <!-- Mensajes Flash -->
+            <div class="alerts">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'danger' if category == 'error' else category }}">
+                                <i class="fas fa-{{ 'exclamation-circle' if category == 'danger' else 'check-circle' }}"></i>
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+            </div>
+
             <form method="post" action="{{ url_for('login') }}">
-                <h1 class="cabeza1">Inicia sesión</h1>
-                <h2 class="cabeza2">Introduce tus datos para continuar</h2>
-
                 <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
 
-                <div>
-                    <label for ="username" class="sr-only">Usuario / Email</label>
-                    <input type="text" id="username" name="username" required placeholder="Usuario o email">
+                <div class="form-group">
+                    <label for="username"><i class="fas fa-user"></i> Usuario o Email</label>
+                    <input type="text" id="username" name="username" required placeholder="Ej: usuario@email.com" autofocus>
                 </div>
-                <div>
-                    <label for ="password" class="sr-only">Contraseña</label>
-                    <input type="password" id="password" name="password" required placeholder="Contraseña">
+
+                <div class="form-group">
+                    <label for="password"><i class="fas fa-lock"></i> Contraseña</label>
+                    <input type="password" id="password" name="password" required placeholder="Ingresa tu contraseña">
                 </div>
-                <div class="nav-button">
-                    <button type="submit" class="nav-button">Continuar</button>
-                </div>
-                <div>
-                    <input type="checkbox" id="remember">
+
+                <button type="submit" class="btn-login">
+                    <i class="fas fa-sign-in-alt"></i> Continuar
+                </button>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="remember" name="remember">
                     <label for="remember">Recuérdame</label>
                 </div>
-                <div>
-                    <a href="#">¿Necesitas ayuda?</a>
+
+                <div class="forgot-password">
+                    <a href="#"><i class="fas fa-question-circle"></i> ¿Necesitas ayuda?</a>
                 </div>
-                <div>
-                    <span>¿Nuevo en Netflix? <a href="{{ url_for('register') }}">Suscríbete ahora</a>.</span>
+
+                <div class="signup-section">
+                    <span>¿Nuevo en Netflix?</span>
+                    <a href="{{ url_for('register') }}">
+                        <i class="fas fa-user-plus"></i> Suscríbete ahora
+                    </a>
                 </div>
             </form>
-        </main>
-    </body>
+        </div>
+    </div>
+
+    <footer style="background-color: rgba(0,0,0,0.7); padding: 1.5rem; text-align: center; border-top: 1px solid #333;">
+        <p style="color: #666; margin: 0; font-size: 0.85rem;">© 2024 Netflix Clone - Proyecto Base de Datos</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
 </html>
