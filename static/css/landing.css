@@ -1,0 +1,322 @@
+/* ========================================
+   LANDING PAGE - NETFLIX STYLE
+   ======================================== */
+
+:root {
+    --netflix-red: #E50914;
+    --netflix-red-hover: #f40612;
+    --netflix-white: #ffffff;
+}
+
+/* ========================================
+   SECCIÓN PRINCIPAL - HERO
+   ======================================== */
+.landing {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    overflow: hidden;
+    background: 
+        radial-gradient(ellipse at top, rgba(229, 9, 20, 0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at bottom, rgba(0, 0, 0, 0.8) 0%, transparent 50%),
+        linear-gradient(to bottom, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.8) 100%);
+}
+
+/* Overlay oscuro con gradiente */
+.landing-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(34, 31, 31, 0.3) 50%, rgba(229, 9, 20, 0.1) 100%);
+    z-index: 1;
+}
+
+/* Contenedor del contenido */
+.landing-content {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    max-width: 950px;
+}
+
+/* ========================================
+   TARJETA PRINCIPAL
+   ======================================== */
+.landing-card {
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 60px 50px;
+    text-align: center;
+    box-shadow: 
+        0 20px 60px rgba(0, 0, 0, 0.5),
+        0 0 80px rgba(229, 9, 20, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    animation: fadeInUp 0.8s ease-out;
+}
+
+/* ========================================
+   TIPOGRAFÍA
+   ======================================== */
+.landing-title {
+    font-size: 3.5rem;
+    font-weight: 900;
+    color: var(--netflix-white);
+    margin-bottom: 1.5rem;
+    line-height: 1.1;
+
+    background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.landing-subtitle {
+    font-size: 1.5rem;
+    font-weight: 400;
+    color: var(--netflix-white);
+    margin-bottom: 1rem;
+    opacity: 0.95;
+}
+
+.landing-cta-text {
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.85);
+    margin-bottom: 2rem;
+    font-weight: 400;
+}
+
+/* ========================================
+   BOTONES DE ACCIÓN
+   ======================================== */
+.landing-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 2rem;
+}
+
+.btn {
+    padding: 18px 40px;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 200px;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn span {
+    position: relative;
+    z-index: 2;
+}
+
+/* Botón primario con gradiente rojo */
+.btn-primary {
+    background: linear-gradient(135deg, var(--netflix-red) 0%, #b20710 100%);
+    color: var(--netflix-white);
+    border: none;
+    box-shadow: 0 4px 15px rgba(229, 9, 20, 0.4);
+}
+
+.btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #f40612 0%, #E50914 100%);
+    transition: left 0.4s ease;
+    z-index: 1;
+}
+
+.btn-primary:hover::before {
+    left: 0;
+}
+
+.btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(229, 9, 20, 0.6);
+}
+
+.btn-primary:active {
+    transform: translateY(-1px);
+}
+
+/* Botón outline */
+.btn-outline {
+    background: transparent;
+    color: var(--netflix-white);
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(5px);
+}
+
+.btn-outline::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 1;
+}
+
+.btn-outline:hover::before {
+    opacity: 1;
+}
+
+.btn-outline:hover {
+    border-color: var(--netflix-white);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(255, 255, 255, 0.2);
+}
+
+.btn-outline:active {
+    transform: translateY(-1px);
+}
+
+/* ========================================
+   ANIMACIONES
+   ======================================== */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(40px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Efecto de pulso sutil en el fondo */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0.05;
+    }
+    50% {
+        opacity: 0.15;
+    }
+}
+
+.landing::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 800px;
+    height: 800px;
+    background: radial-gradient(circle, rgba(229, 9, 20, 0.2) 0%, transparent 70%);
+    transform: translate(-50%, -50%);
+    animation: pulse 4s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+@media (max-width: 768px) {
+    .landing-card {
+        padding: 40px 30px;
+    }
+    
+    .landing-title {
+        font-size: 2.5rem;
+    }
+    
+    .landing-subtitle {
+        font-size: 1.2rem;
+    }
+    
+    .landing-cta-text {
+        font-size: 1rem;
+    }
+    
+    .landing-actions {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .btn {
+        padding: 16px 30px;
+        font-size: 1rem;
+        min-width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .landing {
+        padding: 1rem;
+    }
+    
+    .landing-card {
+        padding: 30px 20px;
+    }
+    
+    .landing-title {
+        font-size: 2rem;
+    }
+    
+    .landing-subtitle {
+        font-size: 1rem;
+    }
+    
+    .landing-cta-text {
+        font-size: 0.95rem;
+    }
+}
+
+/* ========================================
+   ACCESIBILIDAD
+   ======================================== */
+@media (prefers-reduced-motion: reduce) {
+    .landing-card,
+    .btn,
+    .landing::after {
+        animation: none;
+        transition: none;
+    }
+    
+    .btn:hover {
+        transform: none;
+    }
+}
+
+*:focus-visible {
+    outline: 3px solid var(--netflix-red);
+    outline-offset: 3px;
+}
+
+/* ========================================
+   OCULTAR NAVBAR EN LANDING
+   ======================================== */
+nav {
+    display: none !important;
+}
+
+.navbar {
+    display: none !important;
+}
+
+header {
+    display: none !important;
+}
+

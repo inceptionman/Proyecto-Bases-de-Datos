@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}Bienvenido - Netflix Style{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+{% endblock %}
+
+{% block content %}
+  <section class="landing">
+    <div class="landing-overlay"></div>
+    <div class="landing-content">
+      <div class="landing-card">
+        <h1 class="landing-title">Películas, series y mucho más sin límites</h1>
+        <p class="landing-subtitle">Disfruta donde quieras. Cancela cuando quieras.</p>
+        <p class="landing-cta-text">¿Quieres ver algo ya? Accede a tu catálogo o crea tu cuenta.</p>
+        <div class="landing-actions">
+          <a class="btn btn-primary" href="{{ url_for('register') }}">
+            <span>Crear cuenta</span>
+          </a>
+          <a class="btn btn-outline" href="{{ url_for('login') }}">
+            <span>Iniciar sesión</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}

@@ -1,0 +1,346 @@
+/* ========================================
+   VARIABLES CSS - NETFLIX DESIGN SYSTEM
+   ======================================== */
+:root {
+    --netflix-red: #E50914;
+    --netflix-red-hover: #f40612;
+    --netflix-black: #141414;
+    --netflix-dark: #1f1f1f;
+    --netflix-medium: #2a2a2a;
+    --netflix-gray: #333;
+    --netflix-gray-hover: #454545;
+    --netflix-light-gray: #737373;
+    --netflix-white: #ffffff;
+}
+
+/* ========================================
+   RESET Y ESTILOS BASE
+   ======================================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Montserrat', Arial, sans-serif;
+    background-color: var(--netflix-black);
+    color: var(--netflix-white);
+    min-height: 100vh;
+}
+
+/* ========================================
+   CONTENEDOR PRINCIPAL DEL CATÁLOGO
+   ======================================== */
+.catalog-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 40px 60px;
+}
+
+/* ========================================
+   HEADER DEL CATÁLOGO
+   ======================================== */
+.catalog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--netflix-medium);
+}
+
+.catalog-header h2 {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--netflix-white);
+    margin: 0;
+}
+
+.catalog-header div {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.catalog-header small {
+    font-size: 14px;
+    color: var(--netflix-light-gray);
+}
+
+/* ========================================
+   BOTÓN NETFLIX
+   ======================================== */
+.btn-netflix {
+    padding: 10px 20px;
+    background-color: var(--netflix-red);
+    border: none;
+    border-radius: 4px;
+    color: var(--netflix-white);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background-color 0.2s ease;
+    display: inline-block;
+}
+
+.btn-netflix:hover {
+    background-color: var(--netflix-red-hover);
+}
+
+/* ========================================
+   GRID DE PELÍCULAS - ESTILO NETFLIX
+   ======================================== */
+.catalog-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+    padding: 20px 0;
+}
+
+/* ========================================
+   TARJETAS DE PELÍCULAS
+   ======================================== */
+.card {
+    background-color: var(--netflix-dark);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8);
+    z-index: 10;
+}
+
+.card img {
+    width: 100%;
+    height: 350px;
+    object-fit: cover;
+    display: block;
+    transition: opacity 0.3s ease;
+}
+
+.card:hover img {
+    opacity: 0.8;
+}
+
+/* ========================================
+   CUERPO DE LA TARJETA
+   ======================================== */
+.card-body {
+    padding: 15px;
+    background: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.1) 0%,
+        rgba(20, 20, 20, 0.95) 100%
+    );
+}
+
+.card-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--netflix-white);
+    margin-bottom: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.card-desc {
+    font-size: 14px;
+    color: var(--netflix-light-gray);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ========================================
+   MENSAJE SIN PELÍCULAS
+   ======================================== */
+.catalog-container > p {
+    text-align: center;
+    font-size: 18px;
+    color: var(--netflix-light-gray);
+    padding: 60px 20px;
+}
+
+/* ========================================
+   ANIMACIÓN DE ENTRADA
+   ======================================== */
+.card {
+    animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Retraso escalonado para cada tarjeta */
+.card:nth-child(1) { animation-delay: 0.05s; }
+.card:nth-child(2) { animation-delay: 0.1s; }
+.card:nth-child(3) { animation-delay: 0.15s; }
+.card:nth-child(4) { animation-delay: 0.2s; }
+.card:nth-child(5) { animation-delay: 0.25s; }
+.card:nth-child(6) { animation-delay: 0.3s; }
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+@media (max-width: 1200px) {
+    .catalog-container {
+        padding: 30px 40px;
+    }
+    
+    .catalog-grid {
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 18px;
+    }
+    
+    .card img {
+        height: 320px;
+    }
+}
+
+@media (max-width: 768px) {
+    .catalog-container {
+        padding: 20px 30px;
+    }
+    
+    .catalog-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    
+    .catalog-header h2 {
+        font-size: 28px;
+    }
+    
+    .catalog-grid {
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 15px;
+    }
+    
+    .card img {
+        height: 280px;
+    }
+    
+    .card-title {
+        font-size: 16px;
+    }
+    
+    .card-desc {
+        font-size: 13px;
+        -webkit-line-clamp: 2;
+    }
+}
+
+@media (max-width: 480px) {
+    .catalog-container {
+        padding: 15px 20px;
+    }
+    
+    .catalog-header h2 {
+        font-size: 24px;
+    }
+    
+    .catalog-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 12px;
+    }
+    
+    .card img {
+        height: 240px;
+    }
+    
+    .card-body {
+        padding: 12px;
+    }
+    
+    .card-title {
+        font-size: 15px;
+    }
+    
+    .card-desc {
+        font-size: 12px;
+    }
+    
+    .btn-netflix {
+        padding: 8px 16px;
+        font-size: 13px;
+    }
+}
+
+/* ========================================
+   ACCESIBILIDAD
+   ======================================== */
+*:focus-visible {
+    outline: 2px solid var(--netflix-red);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .card,
+    .card:hover {
+        animation: none;
+        transition: none;
+        transform: none;
+    }
+}
+
+/* ========================================
+   EFECTOS HOVER ADICIONALES
+   ======================================== */
+.card:hover .card-body {
+    background: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.3) 0%,
+        rgba(20, 20, 20, 1) 100%
+    );
+}
+
+.card:hover .card-title {
+    color: var(--netflix-red);
+}
+
+/* ========================================
+   SCROLL SUAVE
+   ======================================== */
+html {
+    scroll-behavior: smooth;
+}
+
+/* ========================================
+   BARRA DE SCROLL PERSONALIZADA (OPCIONAL)
+   ======================================== */
+::-webkit-scrollbar {
+    width: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--netflix-black);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--netflix-gray);
+    border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--netflix-gray-hover);
+}

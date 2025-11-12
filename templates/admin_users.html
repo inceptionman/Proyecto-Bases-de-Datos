@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}Administración de Usuarios{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block content %}
+  <h1>Panel de administración - Usuarios</h1>
+
+  {% if users and users|length > 0 %}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Usuario</th>
+          <th>Email</th>
+          <th>Activo</th>
+          <th>Plan</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>{{ u.id }}</td>
+          <td>{{ u.username }}</td>
+          <td>{{ u.email }}</td>
+          <td>{{ 'Sí' if u.is_active else 'No' }}</td>
+          <td>{{ u.subscription_type }}</td>
+          <td class="actions">
+            <form method="post" action="{{ url_for('deactivate_user', user_id=u.id) }}" style="display:inline">
+              <button class="btn danger" type="submit">Desactivar</button>
+            </form>
+            <form method="post" action="{{ url_for('delete_user', user_id=u.id) }}" style="display:inline; margin-left:8px">
+              <button class="btn danger-outline" type="submit">Eliminar</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No hay usuarios registrados.</p>
+  {% endif %}
+
+{% endblock %}
