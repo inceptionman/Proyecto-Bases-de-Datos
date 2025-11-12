@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}Mi Lista - Netflix{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/catalog.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="catalog-container">
+    <div class="catalog-header">
+        <h2><i class="fas fa-list"></i> Mi Lista</h2>
+        
+        {% if current_profile %}
+            <div class="profile-selector">
+                <label for="profile">Viendo como:</label>
+                <!-- Este selector aún no es funcional, pero muestra el perfil actual -->
+                <select name="profile" id="profile" disabled>
+                    <option value="{{ current_profile.id }}">{{ current_profile.profile_name }}</option>
+                </select>
+            </div>
+        {% endif %}
+
+    </div>
+
+    {% if watchlist and watchlist|length > 0 %}
+        <div class="catalog-grid">
+            {% for item in watchlist %}
+                <a href="{{ url_for('movie_detail', movie_id=item.movie_id) if item.content_type == 'movie' else url_for('series_detail', series_id=item.series_id) }}" class="card-link">
+                    <div class="card">
+                        <img src="{{ item.image_url if item.image_url else 'https://via.placeholder.com/300x450?text=' + item.title }}" alt="{{ item.title }}">
+                        
+                        <div class="card-badge">
+                            {% if item.content_type == 'movie' %}
+                                <i class="fas fa-film"></i> Película
+                            {% else %}
+                                <i class="fas fa-tv"></i> Serie
+                            {% endif %}
+                        </div>
+
+                        <div class="card-body">
+                            <h3 class="card-title">{{ item.title }}</h3>
+                            <p class="card-desc">
+                                {{ item.description[:100] }}{% if item.description|length > 100 %}...{% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="catalog-empty">
+            <i class="fas fa-inbox"></i>
+            <h3>Tu lista está vacía</h3>
+            <p>Agrega películas y series a tu lista para verlas más tarde.</p>
+            <a href="{{ url_for('home') }}" class="btn-netflix-primary">
+                <i class="fas fa-search"></i> Explorar contenido
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

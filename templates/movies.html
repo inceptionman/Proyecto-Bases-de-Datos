@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Películas - Netflix{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/catalog.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="catalog-container">
+    <div class="catalog-header">
+        <h2><i class="fas fa-film"></i> Todas las Películas</h2>
+    </div>
+
+    {% if movies and movies|length > 0 %}
+        <div class="catalog-grid">
+            {% for movie in movies %}
+                <a href="{{ url_for('movie_detail', movie_id=movie.id) }}" class="card-link">
+                    <div class="card">
+                        <img src="{{ movie.image_url if movie.image_url else 'https://via.placeholder.com/300x450?text=' + movie.title }}" alt="{{ movie.title }}">
+                        
+                        {% if movie.imdb_rating %}
+                        <div class="card-rating">
+                            <i class="fas fa-star"></i> {{ movie.imdb_rating }}
+                        </div>
+                        {% endif %}
+
+                        <div class="card-body">
+                            <h3 class="card-title">{{ movie.title }}</h3>
+                            <p class="card-desc">
+                                {{ movie.release_year }} • {{ movie.age_rating }}
+                            </p>
+                        </div>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="catalog-empty">
+            <i class="fas fa-video-slash"></i>
+            <h3>No hay películas disponibles</h3>
+            <p>Vuelve más tarde para ver nuevo contenido.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

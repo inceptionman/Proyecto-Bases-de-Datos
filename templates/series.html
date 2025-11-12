@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}Series - Netflix{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/catalog.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="catalog-container">
+    <div class="catalog-header">
+        <h2><i class="fas fa-tv"></i> Todas las Series</h2>
+    </div>
+
+    {% if series_list and series_list|length > 0 %}
+        <div class="catalog-grid">
+            {% for series in series_list %}
+                <a href="{{ url_for('series_detail', series_id=series.id) }}" class="card-link">
+                    <div class="card">
+                        <!-- 'series' no tiene image_url en tu BBDD, usamos placeholder -->
+                        <img src="https://via.placeholder.com/300x450?text={{ series.title|replace(' ', '+') }}" alt="{{ series.title }}">
+                        
+                        {% if series.imdb_rating %}
+                        <div class="card-rating">
+                            <i class="fas fa-star"></i> {{ series.imdb_rating }}
+                        </div>
+                        {% endif %}
+
+                        <div class="card-body">
+                            <h3 class="card-title">{{ series.title }}</h3>
+                            <p class="card-desc">
+                                {{ series.total_seasons }} Temporada(s)
+                            </p>
+                        </div>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="catalog-empty">
+            <i class="fas fa-tv-alt"></i>
+            <h3>No hay series disponibles</h3>
+            <p>Vuelve más tarde para ver nuevo contenido.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -31,8 +31,8 @@ class User(UserMixin, db.Model):
     is_active = db.Column(db.Boolean, default=True)
     subscription_type = db.Column(db.String(50), nullable=True, default='basic')
     subscription_active = db.Column(db.Boolean, default=True)
-    #subscription_end = db.Column(db.Date, nullable=True)
-    #preferred_genres = db.Column(db.Text, nullable=True)
+    #subscription_end = db.Column(db.Date, nullable=True) # Asumido de tu lógica
+    #preferred_genres = db.Column(db.Text, nullable=True) # Asumido
     payments = db.relationship('Payment', backref='user', lazy=True)
 
 
@@ -47,14 +47,23 @@ class Payment(db.Model):
     created_at = db.Column(db.TIMESTAMP, nullable=True)
     card_number = db.Column(db.String, nullable=True)
 
-
+# --- MODELO MOVIE CORREGIDO ---
+# Este modelo ahora refleja la estructura de tu tabla 'movie'
 class Movie(db.Model):
     __tablename__ = 'movie'
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(100), nullable=False)
+    title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text)
+    release_year = db.Column(db.Integer, nullable=False)
+    age_rating = db.Column(db.String(10), nullable=False)
+    country_id = db.Column(db.Integer, db.ForeignKey('country.id'))
+    language_id = db.Column(db.Integer, db.ForeignKey('language.id'))
+    duration_minutes = db.Column(db.Integer)
+    imdb_rating = db.Column(db.Numeric(3, 1))
     image_url = db.Column(db.String(200))
 
+# (Añade aquí otros modelos si los necesitas en SQLAlchemy, como Country, Language, Series)
+# Por ahora, solo 'Movie' era necesario para arreglar la ruta /movies
 
 # ============================================================================
 #                            AUTENTICACIÓN
@@ -82,7 +91,9 @@ def check_subscription_status():
     """Marca la suscripción como inactiva si la fecha de fin ya pasó."""
     try:
         if current_user.is_authenticated:
-            if current_user.subscription_end and isinstance(current_user.subscription_end, date):
+            # Esta lógica asume que tienes una columna 'subscription_end' en tu tabla 'user'
+            # Si no la tienes, esta función puede dar error o no hacer nada.
+            if hasattr(current_user, 'subscription_end') and current_user.subscription_end and isinstance(current_user.subscription_end, date):
                 if date.today() > current_user.subscription_end:
                     if current_user.subscription_active:
                         current_user.subscription_active = False
@@ -99,8 +110,9 @@ def check_subscription_status():
 def home():
     if not current_user.is_authenticated:
         return render_template('landing.html')
-
-    movies = Movie.query.all()
+    
+    # Esta consulta usa el modelo Movie actualizado
+    movies = Movie.query.order_by(Movie.imdb_rating.desc().nulls_last()).limit(12).all()
     return render_template('home.html', movies=movies)
 
 
@@ -300,7 +312,7 @@ def change_plan():
         plan_anterior = current_user.subscription_type
         current_user.subscription_type = new_plan
         
-        # Registrar en historial
+        # Registrar en historial (Asumiendo que no tienes el trigger)
         db.session.execute(
             text("""
                 INSERT INTO subscription_history (user_id, plan_anterior, plan_nuevo)
@@ -341,7 +353,7 @@ def cancel_subscription():
             # Actualizar suscripción
             current_user.subscription_active = False
             current_user.subscription_type = 'cancelado'
-            current_user.subscription_end = date.today()
+            # current_user.subscription_end = date.today() # Descomenta si tienes esta columna
             
             # Registrar motivo si existe
             if motivo:
@@ -357,7 +369,7 @@ def cancel_subscription():
                     }
                 )
             
-            # Registrar en historial
+            # Registrar en historial (Asumiendo que no tienes el trigger)
             db.session.execute(
                 text("""
                     INSERT INTO subscription_history (user_id, plan_anterior, plan_nuevo)
@@ -381,7 +393,8 @@ def cancel_subscription():
             flash('Error al cancelar la suscripción. Intenta de nuevo.', 'danger')
             return redirect(url_for('cancel_subscription'))
     
-    return render_template('cancel_subscription.html')
+    # Asumiendo que tienes un 'cancel_subscription.html'
+    return render_template('cancel_subscription.html') 
 
 @app.route('/profile/reactivate-subscription', methods=['POST'])
 @login_required
@@ -400,9 +413,9 @@ def reactivate_subscription():
         # Reactivar suscripción
         current_user.subscription_active = True
         current_user.subscription_type = new_plan
-        current_user.subscription_end = date.today() + timedelta(days=30)
+        # current_user.subscription_end = date.today() + timedelta(days=30) # Descomenta si tienes esta columna
         
-        # Registrar en historial
+        # Registrar en historial (Asumiendo que no tienes el trigger)
         db.session.execute(
             text("""
                 INSERT INTO subscription_history (user_id, plan_anterior, plan_nuevo)
@@ -444,6 +457,7 @@ def subscription_history():
         flash('No se pudo cargar el historial de suscripciones', 'warning')
         historial = []
     
+    # Asumiendo que tienes un 'subscription_history.html'
     return render_template('subscription_history.html', historial=historial)
 
 
@@ -455,7 +469,13 @@ def subscription_history():
 @login_required
 def admin_users():
     """Panel de administración de usuarios"""
+    # Deberías añadir una comprobación de 'is_admin' aquí
+    # if not current_user.is_admin:
+    #     flash('Acceso no autorizado', 'danger')
+    #     return redirect(url_for('home'))
+        
     users = User.query.all()
+    # Asumiendo que tienes un 'admin_users.html'
     return render_template('admin_users.html', users=users)
 
 
@@ -463,8 +483,8 @@ def admin_users():
 @login_required
 def deactivate_user(user_id):
     """Desactivar usuario (soft delete)"""
+    # (Añadir comprobación de admin)
     try:
-        # CORREGIDO: Usar db.session.get() en lugar de User.query.get()
         user = db.session.get(User, user_id)
         if not user:
             flash('Usuario no encontrado', 'danger')
@@ -486,8 +506,8 @@ def deactivate_user(user_id):
 @login_required
 def delete_user(user_id):
     """Eliminar usuario completamente"""
+    # (Añadir comprobación de admin)
     try:
-        # CORREGIDO: Usar db.session.get() en lugar de User.query.get()
         user = db.session.get(User, user_id)
         if not user:
             flash('Usuario no encontrado', 'danger')
@@ -518,6 +538,7 @@ def delete_user(user_id):
 @login_required
 def audit_users():
     """Ver historial de auditoría de usuarios"""
+    # (Añadir comprobación de admin)
     try:
         audit_records = db.session.execute(
             text("""
@@ -531,6 +552,7 @@ def audit_users():
         audit_records = []
         flash('Tabla de auditoría no disponible', 'warning')
     
+    # Asumiendo que tienes un 'audit_users.html'
     return render_template('audit_users.html', audit_records=audit_records)
 
 
@@ -538,6 +560,7 @@ def audit_users():
 @login_required
 def audit_payments():
     """Ver historial de auditoría de pagos"""
+    # (Añadir comprobación de admin)
     try:
         audit_records = db.session.execute(
             text("""
@@ -551,6 +574,7 @@ def audit_payments():
         audit_records = []
         flash('Tabla de auditoría no disponible', 'warning')
     
+    # Asumiendo que tienes un 'audit_payments.html'
     return render_template('audit_payments.html', audit_records=audit_records)
 
 
@@ -579,7 +603,7 @@ def render_page(page):
 def search_content():
     query = request.args.get('q', '')
     if not query:
-        return render_template('search.html', results=[])
+        return render_template('search.html', results=[], query='') # Pasamos query vacío
     
     try:
         results = db.session.execute(
@@ -589,7 +613,8 @@ def search_content():
         return render_template('search.html', results=results, query=query)
     except Exception as e:
         flash('Error en la búsqueda', 'danger')
-        return render_template('search.html', results=[])
+        print(f"Error en search_content: {e}")
+        return render_template('search.html', results=[], query=query)
 
 # Ruta para estadísticas del usuario
 @app.route('/profile/statistics')
@@ -600,6 +625,7 @@ def user_statistics():
             text("SELECT * FROM get_user_statistics(:user_id)"),
             {'user_id': current_user.id}
         ).fetchone()
+        # Asumiendo que tienes un 'statistics.html'
         return render_template('statistics.html', stats=stats)
     except Exception as e:
         flash('Error al cargar estadísticas', 'danger')
@@ -619,6 +645,7 @@ def recommendations():
             text("SELECT * FROM get_movie_recommendations(:profile_id, :limit)"),
             {'profile_id': profile_id, 'limit': 20}
         ).fetchall()
+        # Asumiendo que tienes un 'recommendations.html'
         return render_template('recommendations.html', recommendations=recommendations)
     except Exception as e:
         flash('Error al generar recomendaciones', 'danger')
@@ -628,6 +655,7 @@ def recommendations():
 @app.route('/admin/analytics')
 @login_required
 def admin_analytics():
+    # (Añadir comprobación de admin)
     try:
         # Obtener datos de vistas materializadas
         most_watched = db.session.execute(
@@ -642,6 +670,7 @@ def admin_analytics():
             text("SELECT * FROM user_retention_analysis ORDER BY signup_month DESC LIMIT 12")
         ).fetchall()
         
+        # Asumiendo que tienes un 'admin_analytics.html'
         return render_template('admin_analytics.html', 
                              most_watched=most_watched,
                              revenue=revenue_data,
@@ -661,11 +690,8 @@ def admin_analytics():
 def movies():
     """Página de películas"""
     try:
-        # Obtener todas las películas
-        movies = Movie.query.all()
-        
-        # También puedes filtrar por categorías si lo deseas
-        # movies = Movie.query.filter_by(...).all()
+        # Esta consulta ahora usa el MODELO CORREGIDO
+        movies = Movie.query.order_by(Movie.imdb_rating.desc().nulls_last()).all()
         
         return render_template('movies.html', movies=movies)
     except Exception as e:
@@ -680,14 +706,14 @@ def series():
     """Página de series"""
     try:
         # Obtener todas las series de la base de datos
-        series = db.session.execute(text("""
+        series_list = db.session.execute(text("""
             SELECT id, title, description, release_year, age_rating, 
                    total_seasons, imdb_rating
             FROM series
             ORDER BY imdb_rating DESC NULLS LAST
         """)).fetchall()
         
-        return render_template('series.html', series=series)
+        return render_template('series.html', series=series_list) # 'series_list' para no confundir
     except Exception as e:
         flash('Error al cargar series', 'danger')
         print(f"Error en series: {e}")
@@ -709,7 +735,7 @@ def my_list():
         
         # Si no hay perfiles, retornar vacío
         if not profiles:
-            return render_template('my_list.html', watchlist=[], profiles=[])
+            return render_template('my_list.html', watchlist=[], profiles=[], current_profile=None)
         
         # Usar el perfil principal o el primero
         main_profile = profiles[0]
@@ -745,7 +771,7 @@ def my_list():
     except Exception as e:
         flash('Error al cargar tu lista', 'danger')
         print(f"Error en my_list: {e}")
-        return render_template('my_list.html', watchlist=[], profiles=[])
+        return render_template('my_list.html', watchlist=[], profiles=[], current_profile=None)
 
 
 
@@ -754,6 +780,7 @@ def my_list():
 @login_required
 def account_settings():
     """Página de configuración de cuenta"""
+    # Asumiendo que tienes un 'settings.html'
     return render_template('settings.html', user=current_user)
 
 
@@ -851,6 +878,7 @@ def movie_detail(movie_id):
             LIMIT 10
         """), {'movie_id': movie_id}).fetchall()
         
+        # Asumiendo que tienes un 'movie_detail.html'
         return render_template('movie_detail.html', 
                              movie=movie, 
                              categories=categories,
@@ -897,6 +925,7 @@ def series_detail(series_id):
             LIMIT 10
         """), {'series_id': series_id}).fetchall()
         
+        # Asumiendo que tienes un 'series_detail.html'
         return render_template('series_detail.html', 
                              series=series, 
                              categories=categories,
