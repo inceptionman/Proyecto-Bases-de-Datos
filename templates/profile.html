@@ -175,6 +175,52 @@
         color: #aaa;
         margin: 0.5rem 0;
     }
+
+    .profile-limit-warning {
+    background: linear-gradient(90deg, #5a1319 0%, #E50914 120%);
+    border: 2px solid #E50914;
+    color: #fff;
+    padding: 1.3rem 2rem 1rem 2rem;
+    border-radius: 10px;
+    box-shadow: 0 6px 32px 0 rgba(229,9,20,0.14);
+    text-align: center;
+    margin: 2rem auto 1.5rem auto;
+    max-width: 420px;
+    font-size: 1.07rem;
+    animation: popBump 0.4s cubic-bezier(.74,.01,.43,1.27);
+    }
+
+    @keyframes popBump {
+        0%   { transform: scale(0.8); opacity: 0; }
+        90%  { transform: scale(1.04); }
+        100% { transform: scale(1); opacity: 1;}
+    }
+
+    .profile-limit-warning .btn-netflix {
+        margin-top: 0.8rem;
+        font-size: 1.12rem;
+        padding: 0.8rem 2.2rem;
+        box-shadow: 0 2px 10px rgba(255,255,255,0.03);
+    }
+
+    .profile-limit-warning i {
+        color: #fff;
+        margin-right: 6px;
+        font-size: 1.3em;
+        vertical-align: -2px;
+    }
+
+    .profile-limit-warning a {
+        color: #ffe6e9 !important;
+        font-weight: bold;
+        text-decoration: underline;
+        margin-left: 6px;
+        transition: color 0.2s;
+    }
+    .profile-limit-warning a:hover {
+        color: #fff;
+    }
+
 </style>
 {% endblock %}
 
@@ -206,6 +252,25 @@
         {% endif %}
     </div>
 </div>
+
+<div class="profile-limit-warning">
+    {% if can_create_more %}
+        <a href="{{ url_for('create_profile') }}" class="btn btn-netflix">
+            <i class="fas fa-plus"></i> Crear Nuevo Perfil
+        </a>
+    {% else %}
+        <button class="btn btn-netflix" disabled>
+            <i class="fas fa-lock"></i> Límite de perfiles alcanzado
+        </button>
+        <p style="margin-top: 10px;">
+            Tienes {{ profiles|length }} de {{ max_profiles }} perfiles.
+            <a href="{{ url_for('change_plan') }}">
+                Actualiza tu plan
+            </a> para crear más.
+        </p>
+    {% endif %}
+</div>
+
 
 <!-- GESTIÓN DE SUSCRIPCIÓN -->
 <div class="section">
