@@ -1,269 +1,215 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Buscar - Netflix</title>
+{% extends 'base.html' %}
+
+{% block title %}Buscar - Netflix{% endblock %}
+
+{% block extra_css %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/search.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body>
-    <!-- Navbar -->
-    <nav class="navbar">
-        <div class="nav-container">
-            <a href="{{ url_for('home') }}" class="logo">NETFLIX</a>
-            <ul class="nav-menu">
-                <li><a href="{{ url_for('home') }}">Inicio</a></li>
-                <li><a href="{{ url_for('movies') }}">Películas</a></li>
-                <li><a href="{{ url_for('series') }}">Series</a></li>
-                <li><a href="{{ url_for('search_content') }}" class="active">Buscar</a></li>
-                <li><a href="{{ url_for('profile') }}">Mi Perfil</a></li>
-            </ul>
-            <div class="nav-right">
-                <a href="{{ url_for('search_content') }}" class="search-icon"><i class="fas fa-search"></i></a>
-                <a href="{{ url_for('logout') }}" class="logout-btn">Cerrar Sesión</a>
+{% endblock %}
+
+{% block content %}
+<div class="search-container">
+    <div class="search-header">
+        <h1>Buscar Contenido</h1>
+        <p>Encuentra tus películas y series favoritas</p>
+    </div>
+
+    <div class="search-form-wrapper">
+        <form method="GET" action="{{ url_for('search_content') }}" class="search-form">
+            <div class="search-input-group">
+                <i class="fas fa-search search-input-icon"></i>
+                <input 
+                    type="text" 
+                    name="q" 
+                    class="search-input" 
+                    placeholder="Buscar películas, series, actores, categorías..." 
+                    value="{{ query if query else '' }}"
+                    autofocus
+                    required
+                >
+                <button type="submit" class="search-btn">
+                    <i class="fas fa-arrow-right"></i>
+                </button>
             </div>
-        </div>
-    </nav>
+        </form>
+    </div>
 
-    <!-- Search Container -->
-    <div class="search-container">
-        <div class="search-header">
-            <h1>Buscar Contenido</h1>
-            <p>Encuentra tus películas y series favoritas</p>
-        </div>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="messages-container">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                        <button class="close-alert">&times;</button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
 
-        <!-- Search Form -->
-        <div class="search-form-wrapper">
-            <form method="GET" action="{{ url_for('search_content') }}" class="search-form">
-                <div class="search-input-group">
-                    <i class="fas fa-search search-input-icon"></i>
-                    <input 
-                        type="text" 
-                        name="q" 
-                        class="search-input" 
-                        placeholder="Buscar películas, series, actores, categorías..." 
-                        value="{{ query if query else '' }}"
-                        autofocus
-                        required
-                    >
-                    <button type="submit" class="search-btn">
-                        <i class="fas fa-arrow-right"></i>
-                    </button>
-                </div>
-            </form>
-        </div>
+    {% if query %}
+        <div class="results-section">
+            <div class="results-header">
+                <h2>Resultados para "{{ query }}"</h2>
+                <span class="results-count">{{ results|length }} resultado(s) encontrado(s)</span>
+            </div>
 
-        <!-- Messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="messages-container">
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">
-                            {{ message }}
-                            <button class="close-alert">&times;</button>
+            {% if results %}
+                <div class="results-grid">
+                    {% for result in results %}
+                        <div class="result-card" data-type="{{ result.content_type }}">
+                            <div class="card-image">
+                                {% if result.content_type == 'movie' %}
+                                    {% if result.image_url %}
+                                        <img src="{{ result.image_url }}" alt="{{ result.title }}">
+                                    {% else %}
+                                        <div class="placeholder-image">
+                                            <i class="fas fa-film"></i>
+                                        </div>
+                                    {% endif %}
+                                {% else %}
+                                    <div class="placeholder-image">
+                                        <i class="fas fa-tv"></i>
+                                    </div>
+                                {% endif %}
+                                <div class="card-overlay">
+                                    <button class="play-btn">
+                                        <i class="fas fa-play"></i>
+                                    </button>
+                                </div>
+                                <div class="content-type-badge">
+                                    {% if result.content_type == 'movie' %}
+                                        <i class="fas fa-film"></i> Película
+                                    {% else %}
+                                        <i class="fas fa-tv"></i> Serie
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="card-content">
+                                <h3 class="card-title">{{ result.title }}</h3>
+                                {% if result.description %}
+                                    <p class="card-description">
+                                        {{ result.description[:150] }}{% if result.description|length > 150 %}...{% endif %}
+                                    </p>
+                                {% endif %}
+                                {% if result.rank %}
+                                    <div class="card-rating">
+                                        <i class="fas fa-star"></i>
+                                        <span>Relevancia: {{ "%.2f"|format(result.rank) }}</span>
+                                    </div>
+                                {% endif %}
+                                <div class="card-actions">
+                                    {% if result.content_type == 'movie' %}
+                                        <a href="{{ url_for('movie_detail', movie_id=result.id) }}" class="btn-primary">
+                                            <i class="fas fa-info-circle"></i> Ver Detalles
+                                        </a>
+                                    {% else %}
+                                        <a href="{{ url_for('series_detail', series_id=result.id) }}" class="btn-primary">
+                                            <i class="fas fa-info-circle"></i> Ver Detalles
+                                        </a>
+                                    {% endif %}
+                                    <button class="btn-secondary add-to-list" data-id="{{ result.id }}" data-type="{{ result.content_type }}">
+                                        <i class="fas fa-plus"></i> Mi Lista
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     {% endfor %}
                 </div>
+            {% else %}
+                <div class="no-results">
+                    <div class="no-results-icon">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <h3>No se encontraron resultados</h3>
+                    <p>Intenta con otras palabras clave o verifica la ortografía</p>
+                    <div class="suggestions">
+                        <h4>Sugerencias:</h4>
+                        <ul>
+                            <li>Usa palabras más generales</li>
+                            <li>Verifica la ortografía</li>
+                            <li>Intenta con nombres de actores o directores</li>
+                            <li>Busca por género o categoría</li>
+                        </ul>
+                    </div>
+                </div>
             {% endif %}
-        {% endwith %}
-
-        <!-- Search Results -->
-        {% if query %}
-            <div class="results-section">
-                <div class="results-header">
-                    <h2>Resultados para "{{ query }}"</h2>
-                    <span class="results-count">{{ results|length }} resultado(s) encontrado(s)</span>
-                </div>
-
-                {% if results %}
-                    <div class="results-grid">
-                        {% for result in results %}
-                            <div class="result-card" data-type="{{ result.content_type }}">
-                                <div class="card-image">
-                                    {% if result.content_type == 'movie' %}
-                                        {% if result.image_url %}
-                                            <img src="{{ result.image_url }}" alt="{{ result.title }}">
-                                        {% else %}
-                                            <div class="placeholder-image">
-                                                <i class="fas fa-film"></i>
-                                            </div>
-                                        {% endif %}
-                                    {% else %}
-                                        <div class="placeholder-image">
-                                            <i class="fas fa-tv"></i>
-                                        </div>
-                                    {% endif %}
-                                    <div class="card-overlay">
-                                        <button class="play-btn">
-                                            <i class="fas fa-play"></i>
-                                        </button>
-                                    </div>
-                                    <div class="content-type-badge">
-                                        {% if result.content_type == 'movie' %}
-                                            <i class="fas fa-film"></i> Película
-                                        {% else %}
-                                            <i class="fas fa-tv"></i> Serie
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                <div class="card-content">
-                                    <h3 class="card-title">{{ result.title }}</h3>
-                                    {% if result.description %}
-                                        <p class="card-description">
-                                            {{ result.description[:150] }}{% if result.description|length > 150 %}...{% endif %}
-                                        </p>
-                                    {% endif %}
-                                    {% if result.rank %}
-                                        <div class="card-rating">
-                                            <i class="fas fa-star"></i>
-                                            <span>Relevancia: {{ "%.2f"|format(result.rank) }}</span>
-                                        </div>
-                                    {% endif %}
-                                    <div class="card-actions">
-                                        {% if result.content_type == 'movie' %}
-                                            <a href="{{ url_for('movie_detail', movie_id=result.id) }}" class="btn-primary">
-                                                <i class="fas fa-info-circle"></i> Ver Detalles
-                                            </a>
-                                        {% else %}
-                                            <a href="{{ url_for('series_detail', series_id=result.id) }}" class="btn-primary">
-                                                <i class="fas fa-info-circle"></i> Ver Detalles
-                                            </a>
-                                        {% endif %}
-                                        <button class="btn-secondary add-to-list" data-id="{{ result.id }}" data-type="{{ result.content_type }}">
-                                            <i class="fas fa-plus"></i> Mi Lista
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="no-results">
-                        <div class="no-results-icon">
-                            <i class="fas fa-search"></i>
-                        </div>
-                        <h3>No se encontraron resultados</h3>
-                        <p>Intenta con otras palabras clave o verifica la ortografía</p>
-                        <div class="suggestions">
-                            <h4>Sugerencias:</h4>
-                            <ul>
-                                <li>Usa palabras más generales</li>
-                                <li>Verifica la ortografía</li>
-                                <li>Intenta con nombres de actores o directores</li>
-                                <li>Busca por género o categoría</li>
-                            </ul>
-                        </div>
-                    </div>
-                {% endif %}
-            </div>
-        {% else %}
-            <!-- Popular Searches / Categories -->
-            <div class="popular-section">
-                <h2>Categorías Populares</h2>
-                <div class="categories-grid">
-                    <div class="category-card" onclick="searchCategory('Acción')">
-                        <i class="fas fa-running"></i>
-                        <span>Acción</span>
-                    </div>
-                    <div class="category-card" onclick="searchCategory('Comedia')">
-                        <i class="fas fa-laugh"></i>
-                        <span>Comedia</span>
-                    </div>
-                    <div class="category-card" onclick="searchCategory('Drama')">
-                        <i class="fas fa-theater-masks"></i>
-                        <span>Drama</span>
-                    </div>
-                    <div class="category-card" onclick="searchCategory('Terror')">
-                        <i class="fas fa-ghost"></i>
-                        <span>Terror</span>
-                    </div>
-                    <div class="category-card" onclick="searchCategory('Romance')">
-                        <i class="fas fa-heart"></i>
-                        <span>Romance</span>
-                    </div>
-                    <div class="category-card" onclick="searchCategory('Ciencia Ficción')">
-                        <i class="fas fa-rocket"></i>
-                        <span>Ciencia Ficción</span>
-                    </div>
-                    <div class="category-card" onclick="searchCategory('Documental')">
-                        <i class="fas fa-book-open"></i>
-                        <span>Documental</span>
-                    </div>
-                    <div class="category-card" onclick="searchCategory('Anime')">
-                        <i class="fas fa-dragon"></i>
-                        <span>Anime</span>
-                    </div>
-                </div>
-            </div>
-        {% endif %}
-    </div>
-
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="footer-container">
-            <p>&copy; 2025 Netflix Clone - Proyecto Base de Datos 2</p>
-            <div class="footer-links">
-                <a href="#">Términos de Uso</a>
-                <a href="#">Privacidad</a>
-                <a href="#">Ayuda</a>
-            </div>
         </div>
-    </footer>
+    {% else %}
+        <div class="popular-section">
+            <h2>Categorías Populares</h2>
+            <div class="categories-grid">
+                <div class="category-card" onclick="searchCategory('Acción')">
+                    <i class="fas fa-running"></i>
+                    <span>Acción</span>
+                </div>
+                <div class="category-card" onclick="searchCategory('Comedia')">
+                    <i class="fas fa-laugh"></i>
+                    <span>Comedia</span>
+                </div>
+                </div>
+        </div>
+    {% endif %}
+</div>
 
-    <script>
-        // Function to search by category
-        function searchCategory(category) {
-            document.querySelector('.search-input').value = category;
-            document.querySelector('.search-form').submit();
-        }
+{% endblock %}
 
-        // Close alert messages
-        document.querySelectorAll('.close-alert').forEach(btn => {
-            btn.addEventListener('click', function() {
-                this.parentElement.style.display = 'none';
+
+{% block extra_js %}
+<script>
+    // Function to search by category
+    function searchCategory(category) {
+        document.querySelector('.search-input').value = category;
+        document.querySelector('.search-form').submit();
+    }
+
+    // Close alert messages
+    document.querySelectorAll('.close-alert').forEach(btn => {
+        btn.addEventListener('click', function() {
+            this.parentElement.style.display = 'none';
+        });
+    });
+
+    // Add to list functionality
+    document.querySelectorAll('.add-to-list').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const contentId = this.dataset.id;
+            const contentType = this.dataset.type;
+            
+            // Aquí puedes hacer una petición AJAX para agregar a la lista
+            fetch('/add-to-watchlist', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    content_id: contentId,
+                    content_type: contentType
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    this.innerHTML = '<i class="fas fa-check"></i> Agregado';
+                    this.disabled = true;
+                } else {
+                    alert('Error al agregar a la lista');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
             });
         });
+    });
 
-        // Add to list functionality
-        document.querySelectorAll('.add-to-list').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const contentId = this.dataset.id;
-                const contentType = this.dataset.type;
-                
-                // Aquí puedes hacer una petición AJAX para agregar a la lista
-                fetch('/add-to-watchlist', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        content_id: contentId,
-                        content_type: contentType
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        this.innerHTML = '<i class="fas fa-check"></i> Agregado';
-                        this.disabled = true;
-                    } else {
-                        alert('Error al agregar a la lista');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                });
-            });
-        });
-
-        // Auto-hide alerts after 5 seconds
-        setTimeout(() => {
-            document.querySelectorAll('.alert').forEach(alert => {
+    // Auto-hide alerts after 5 seconds
+    setTimeout(() => {
+        document.querySelectorAll('.alert').forEach(alert => {
+            if (alert.style.display !== 'none') { // Solo si no está ya cerrada
                 alert.style.opacity = '0';
                 setTimeout(() => alert.style.display = 'none', 300);
-            });
-        }, 5000);
-    </script>
-</body>
-</html>
+            }
+        });
+    }, 5000);
+</script>
+{% endblock %}
