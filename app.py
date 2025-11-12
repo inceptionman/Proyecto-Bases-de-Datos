@@ -782,6 +782,74 @@ def account_settings():
     return render_template('settings.html', user=current_user)
 
 
+# =====================
+# Perfiles de usuario
+# =====================
+
+@app.route('/profiles')
+@login_required
+def profiles():
+    """Listar perfiles del usuario y formulario para crear"""
+    try:
+        profiles = db.session.execute(text("""
+            SELECT id, profile_name, profile_type, is_main, created_at
+            FROM profiles
+            WHERE user_id = :user_id
+            ORDER BY is_main DESC, created_at ASC
+        """), {'user_id': current_user.id}).fetchall()
+
+        # perfil seleccionado en sesión
+        selected = None
+        if session.get('profile_id'):
+            selected = db.session.execute(text("SELECT id, profile_name FROM profiles WHERE id = :pid AND user_id = :uid"),
+                                          {'pid': session.get('profile_id'), 'uid': current_user.id}).fetchone()
+
+        return render_template('profiles.html', profiles=profiles, selected_profile=selected)
+    except Exception as e:
+        print(f"Error en profiles: {e}")
+        flash('Error al cargar perfiles', 'danger')
+        return redirect(url_for('profile'))
+
+
+@app.route('/profiles/create', methods=['POST'])
+@login_required
+def create_profile():
+    name = request.form.get('profile_name')
+    ptype = request.form.get('profile_type', 'standard')
+    if not name:
+        flash('El nombre del perfil es requerido', 'warning')
+        return redirect(url_for('profiles'))
+    try:
+        # si el usuario no tiene perfiles, este será el main
+        has_any = db.session.execute(text("SELECT 1 FROM profiles WHERE user_id = :uid LIMIT 1"), {'uid': current_user.id}).fetchone()
+        is_main = False if has_any else True
+        db.session.execute(text("""
+            INSERT INTO profiles (user_id, profile_name, profile_type, is_main, created_at)
+            VALUES (:uid, :pname, :ptype, :is_main, CURRENT_TIMESTAMP)
+        """), {'uid': current_user.id, 'pname': name, 'ptype': ptype, 'is_main': is_main})
+        db.session.commit()
+        flash('Perfil creado', 'success')
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creando perfil: {e}")
+        flash('Error al crear perfil', 'danger')
+    return redirect(url_for('profiles'))
+
+
+@app.route('/profiles/switch', methods=['POST'])
+@login_required
+def switch_profile():
+    pid = request.form.get('profile_id') or request.json.get('profile_id') if request.is_json else None
+    if not pid:
+        return {'success': False, 'message': 'profile_id no proporcionado'}, 400
+    # verificar que el perfil pertenezca al usuario
+    p = db.session.execute(text("SELECT id FROM profiles WHERE id = :pid AND user_id = :uid"), {'pid': pid, 'uid': current_user.id}).fetchone()
+    if not p:
+        return {'success': False, 'message': 'Perfil no encontrado'}, 404
+    session['profile_id'] = p.id
+    return {'success': True, 'message': 'Perfil seleccionado', 'profile_id': p.id}
+
+
 @app.route('/add-to-watchlist', methods=['POST'])
 @login_required
 def add_to_watchlist():
@@ -791,13 +859,19 @@ def add_to_watchlist():
         content_id = data.get('content_id')
         content_type = data.get('content_type')
         
-        # Obtener el perfil principal del usuario
-        profile = db.session.execute(text("""
-            SELECT id FROM profiles
-            WHERE user_id = :user_id
-            ORDER BY is_main DESC, created_at ASC
-            LIMIT 1
-        """), {'user_id': current_user.id}).fetchone()
+        # Preferir perfil seleccionado en sesión, si existe
+        profile_id = session.get('profile_id')
+        if profile_id:
+            profile = db.session.execute(text("SELECT id FROM profiles WHERE id = :pid AND user_id = :uid"),
+                                         {'pid': profile_id, 'uid': current_user.id}).fetchone()
+        else:
+            # Obtener el perfil principal del usuario
+            profile = db.session.execute(text("""
+                SELECT id FROM profiles
+                WHERE user_id = :user_id
+                ORDER BY is_main DESC, created_at ASC
+                LIMIT 1
+            """), {'user_id': current_user.id}).fetchone()
         
         if not profile:
             return {'success': False, 'message': 'No tienes perfiles creados'}, 400
@@ -819,20 +893,23 @@ def add_to_watchlist():
         if existing:
             return {'success': False, 'message': 'Ya está en tu lista'}, 400
         
-        # Agregar a la watchlist
+        # Agregar a la watchlist y devolver el id creado
         if content_type == 'movie':
-            db.session.execute(text("""
+            new_row = db.session.execute(text("""
                 INSERT INTO watch_list (profile_id, movie_id, status, added_date)
                 VALUES (:profile_id, :content_id, 'to_watch', CURRENT_DATE)
-            """), {'profile_id': profile_id, 'content_id': content_id})
+                RETURNING id
+            """), {'profile_id': profile.id, 'content_id': content_id}).fetchone()
         else:
-            db.session.execute(text("""
+            new_row = db.session.execute(text("""
                 INSERT INTO watch_list (profile_id, series_id, status, added_date)
                 VALUES (:profile_id, :content_id, 'to_watch', CURRENT_DATE)
-            """), {'profile_id': profile_id, 'content_id': content_id})
-        
+                RETURNING id
+            """), {'profile_id': profile.id, 'content_id': content_id}).fetchone()
+
         db.session.commit()
-        return {'success': True, 'message': 'Agregado a tu lista'}
+        wid = new_row.id if new_row else None
+        return {'success': True, 'message': 'Agregado a tu lista', 'watchlist_id': wid}
     
     except Exception as e:
         db.session.rollback()
@@ -910,11 +987,17 @@ def movie_detail(movie_id):
             LIMIT 10
         """), {'movie_id': movie_id}).fetchall()
         
-        # Asumiendo que tienes un 'movie_detail.html'
-        return render_template('movie_detail.html', 
-                             movie=movie, 
-                             categories=categories,
-                             actors=actors)
+        # Simulamos la reproducción desde aquí: redirigir a player
+        # Determinar calidad según el plan del usuario
+        plan = current_user.subscription_type or 'basic'
+        quality = 'SD' if plan == 'basic' else 'HD' if plan == 'standard' else '4K'
+        # obtener perfil seleccionado
+        sel = None
+        if session.get('profile_id'):
+            sel = db.session.execute(text('SELECT profile_name FROM profiles WHERE id = :pid'), {'pid': session.get('profile_id')}).fetchone()
+        profile_name = sel.profile_name if sel else None
+        content = movie
+        return render_template('player.html', content=content, quality=quality, profile_name=profile_name)
     except Exception as e:
         flash('Error al cargar detalles de la película', 'danger')
         print(f"Error en movie_detail: {e}")
@@ -957,11 +1040,15 @@ def series_detail(series_id):
             LIMIT 10
         """), {'series_id': series_id}).fetchall()
         
-        # Asumiendo que tienes un 'series_detail.html'
-        return render_template('series_detail.html', 
-                             series=series, 
-                             categories=categories,
-                             actors=actors)
+        # Simulamos la reproducción desde aquí: redirigir a player
+        plan = current_user.subscription_type or 'basic'
+        quality = 'SD' if plan == 'basic' else 'HD' if plan == 'standard' else '4K'
+        sel = None
+        if session.get('profile_id'):
+            sel = db.session.execute(text('SELECT profile_name FROM profiles WHERE id = :pid'), {'pid': session.get('profile_id')}).fetchone()
+        profile_name = sel.profile_name if sel else None
+        content = series
+        return render_template('player.html', content=content, quality=quality, profile_name=profile_name)
     except Exception as e:
         flash('Error al cargar detalles de la serie', 'danger')
         print(f"Error en series_detail: {e}")

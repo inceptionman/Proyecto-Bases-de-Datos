@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Perfiles - Netflix{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h2>Perfiles</h2>
+  <p>Gestiona los perfiles de tu cuenta.</p>
+
+  <div style="margin-top:1rem; margin-bottom:1rem;">
+    <form method="post" action="{{ url_for('create_profile') }}" class="d-flex gap-2">
+      <input name="profile_name" class="form-control" placeholder="Nombre del perfil" required>
+      <select name="profile_type" class="form-select" style="max-width:160px;">
+        <option value="standard">Estándar</option>
+        <option value="kids">Kids</option>
+      </select>
+      <button class="btn btn-danger">Crear</button>
+    </form>
+  </div>
+
+  <div class="row">
+    {% for p in profiles %}
+      <div class="col-md-3">
+        <div class="card" style="background:#222; padding:1rem; margin-bottom:1rem;">
+          <h5 style="color:#fff;">{{ p.profile_name }}</h5>
+          <p style="color:#aaa;">Tipo: {{ p.profile_type }}</p>
+          {% if selected_profile and selected_profile.id == p.id %}
+            <span class="badge bg-success">Seleccionado</span>
+          {% else %}
+            <form method="post" action="{{ url_for('switch_profile') }}">
+              <input type="hidden" name="profile_id" value="{{ p.id }}">
+              <button class="btn btn-sm btn-outline-light">Seleccionar</button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
