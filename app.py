@@ -571,7 +571,339 @@ def render_page(page):
     else:
         return "Página no encontrada", 404
 
+# Ruta para búsqueda de contenido con full-text search
+@app.route('/search', methods=['GET'])
+@login_required
+def search_content():
+    query = request.args.get('q', '')
+    if not query:
+        return render_template('search.html', results=[])
+    
+    try:
+        results = db.session.execute(
+            text("SELECT * FROM search_content(:query)"),
+            {'query': query}
+        ).fetchall()
+        return render_template('search.html', results=results, query=query)
+    except Exception as e:
+        flash('Error en la búsqueda', 'danger')
+        return render_template('search.html', results=[])
 
+# Ruta para estadísticas del usuario
+@app.route('/profile/statistics')
+@login_required
+def user_statistics():
+    try:
+        stats = db.session.execute(
+            text("SELECT * FROM get_user_statistics(:user_id)"),
+            {'user_id': current_user.id}
+        ).fetchone()
+        return render_template('statistics.html', stats=stats)
+    except Exception as e:
+        flash('Error al cargar estadísticas', 'danger')
+        return redirect(url_for('profile'))
+
+# Ruta para recomendaciones
+@app.route('/recommendations')
+@login_required
+def recommendations():
+    profile_id = request.args.get('profile_id', type=int)
+    if not profile_id:
+        flash('Selecciona un perfil', 'warning')
+        return redirect(url_for('home'))
+    
+    try:
+        recommendations = db.session.execute(
+            text("SELECT * FROM get_movie_recommendations(:profile_id, :limit)"),
+            {'profile_id': profile_id, 'limit': 20}
+        ).fetchall()
+        return render_template('recommendations.html', recommendations=recommendations)
+    except Exception as e:
+        flash('Error al generar recomendaciones', 'danger')
+        return redirect(url_for('home'))
+
+# Ruta para panel de análisis (solo admin)
+@app.route('/admin/analytics')
+@login_required
+def admin_analytics():
+    try:
+        # Obtener datos de vistas materializadas
+        most_watched = db.session.execute(
+            text("SELECT * FROM mv_most_watched_content LIMIT 10")
+        ).fetchall()
+        
+        revenue_data = db.session.execute(
+            text("SELECT * FROM mv_revenue_by_plan ORDER BY month DESC LIMIT 12")
+        ).fetchall()
+        
+        retention_data = db.session.execute(
+            text("SELECT * FROM user_retention_analysis ORDER BY signup_month DESC LIMIT 12")
+        ).fetchall()
+        
+        return render_template('admin_analytics.html', 
+                             most_watched=most_watched,
+                             revenue=revenue_data,
+                             retention=retention_data)
+    except Exception as e:
+        flash('Error al cargar análisis', 'danger')
+        return redirect(url_for('home'))
+
+
+
+# ============================================================================
+# RUTAS DE CONTENIDO - Agregar estas rutas a tu app.py
+# ============================================================================
+
+@app.route('/movies')
+@login_required
+def movies():
+    """Página de películas"""
+    try:
+        # Obtener todas las películas
+        movies = Movie.query.all()
+        
+        # También puedes filtrar por categorías si lo deseas
+        # movies = Movie.query.filter_by(...).all()
+        
+        return render_template('movies.html', movies=movies)
+    except Exception as e:
+        flash('Error al cargar películas', 'danger')
+        print(f"Error en movies: {e}")
+        return redirect(url_for('home'))
+
+
+@app.route('/series')
+@login_required
+def series():
+    """Página de series"""
+    try:
+        # Obtener todas las series de la base de datos
+        series = db.session.execute(text("""
+            SELECT id, title, description, release_year, age_rating, 
+                   total_seasons, imdb_rating
+            FROM series
+            ORDER BY imdb_rating DESC NULLS LAST
+        """)).fetchall()
+        
+        return render_template('series.html', series=series)
+    except Exception as e:
+        flash('Error al cargar series', 'danger')
+        print(f"Error en series: {e}")
+        return redirect(url_for('home'))
+
+
+@app.route('/my-list')
+@login_required
+def my_list():
+    """Página de Mi Lista - contenido guardado por el usuario"""
+    try:
+        # Obtener perfiles del usuario
+        profiles = db.session.execute(text("""
+            SELECT id, profile_name, profile_type, is_main
+            FROM profiles
+            WHERE user_id = :user_id
+            ORDER BY is_main DESC, created_at ASC
+        """), {'user_id': current_user.id}).fetchall()
+        
+        # Si no hay perfiles, retornar vacío
+        if not profiles:
+            return render_template('my_list.html', watchlist=[], profiles=[])
+        
+        # Usar el perfil principal o el primero
+        main_profile = profiles[0]
+        profile_id = main_profile.id
+        
+        # Obtener contenido de la watchlist
+        watchlist = db.session.execute(text("""
+            SELECT 
+                wl.id,
+                wl.status,
+                wl.added_date,
+                CASE 
+                    WHEN wl.movie_id IS NOT NULL THEN 'movie'
+                    ELSE 'series'
+                END as content_type,
+                COALESCE(m.title, s.title) as title,
+                COALESCE(m.description, s.description) as description,
+                COALESCE(m.imdb_rating, s.imdb_rating) as rating,
+                m.image_url,
+                wl.movie_id,
+                wl.series_id
+            FROM watch_list wl
+            LEFT JOIN movie m ON wl.movie_id = m.id
+            LEFT JOIN series s ON wl.series_id = s.id
+            WHERE wl.profile_id = :profile_id
+            ORDER BY wl.added_date DESC
+        """), {'profile_id': profile_id}).fetchall()
+        
+        return render_template('my_list.html', 
+                             watchlist=watchlist, 
+                             profiles=profiles,
+                             current_profile=main_profile)
+    except Exception as e:
+        flash('Error al cargar tu lista', 'danger')
+        print(f"Error en my_list: {e}")
+        return render_template('my_list.html', watchlist=[], profiles=[])
+
+
+
+
+@app.route('/account/settings')
+@login_required
+def account_settings():
+    """Página de configuración de cuenta"""
+    return render_template('settings.html', user=current_user)
+
+
+@app.route('/add-to-watchlist', methods=['POST'])
+@login_required
+def add_to_watchlist():
+    """API para agregar contenido a la watchlist"""
+    try:
+        data = request.get_json()
+        content_id = data.get('content_id')
+        content_type = data.get('content_type')
+        
+        # Obtener el perfil principal del usuario
+        profile = db.session.execute(text("""
+            SELECT id FROM profiles
+            WHERE user_id = :user_id
+            ORDER BY is_main DESC, created_at ASC
+            LIMIT 1
+        """), {'user_id': current_user.id}).fetchone()
+        
+        if not profile:
+            return {'success': False, 'message': 'No tienes perfiles creados'}, 400
+        
+        profile_id = profile.id
+        
+        # Verificar si ya existe
+        if content_type == 'movie':
+            existing = db.session.execute(text("""
+                SELECT 1 FROM watch_list
+                WHERE profile_id = :profile_id AND movie_id = :content_id
+            """), {'profile_id': profile_id, 'content_id': content_id}).fetchone()
+        else:
+            existing = db.session.execute(text("""
+                SELECT 1 FROM watch_list
+                WHERE profile_id = :profile_id AND series_id = :content_id
+            """), {'profile_id': profile_id, 'content_id': content_id}).fetchone()
+        
+        if existing:
+            return {'success': False, 'message': 'Ya está en tu lista'}, 400
+        
+        # Agregar a la watchlist
+        if content_type == 'movie':
+            db.session.execute(text("""
+                INSERT INTO watch_list (profile_id, movie_id, status, added_date)
+                VALUES (:profile_id, :content_id, 'to_watch', CURRENT_DATE)
+            """), {'profile_id': profile_id, 'content_id': content_id})
+        else:
+            db.session.execute(text("""
+                INSERT INTO watch_list (profile_id, series_id, status, added_date)
+                VALUES (:profile_id, :content_id, 'to_watch', CURRENT_DATE)
+            """), {'profile_id': profile_id, 'content_id': content_id})
+        
+        db.session.commit()
+        return {'success': True, 'message': 'Agregado a tu lista'}
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error al agregar a watchlist: {e}")
+        return {'success': False, 'message': 'Error al agregar'}, 500
+
+
+@app.route('/movie/<int:movie_id>')
+@login_required
+def movie_detail(movie_id):
+    """Página de detalle de película"""
+    try:
+        movie = db.session.execute(text("""
+            SELECT m.*,
+                   c.name as country_name,
+                   l.name as language_name
+            FROM movie m
+            LEFT JOIN country c ON m.country_id = c.id
+            LEFT JOIN language l ON m.language_id = l.id
+            WHERE m.id = :movie_id
+        """), {'movie_id': movie_id}).fetchone()
+        
+        if not movie:
+            flash('Película no encontrada', 'warning')
+            return redirect(url_for('movies'))
+        
+        # Obtener categorías
+        categories = db.session.execute(text("""
+            SELECT c.name
+            FROM movie_category mc
+            JOIN category c ON mc.category_id = c.id
+            WHERE mc.movie_id = :movie_id
+        """), {'movie_id': movie_id}).fetchall()
+        
+        # Obtener actores
+        actors = db.session.execute(text("""
+            SELECT a.first_name, a.last_name, ma.character_name
+            FROM movie_actor ma
+            JOIN actor a ON ma.actor_id = a.id
+            WHERE ma.movie_id = :movie_id
+            LIMIT 10
+        """), {'movie_id': movie_id}).fetchall()
+        
+        return render_template('movie_detail.html', 
+                             movie=movie, 
+                             categories=categories,
+                             actors=actors)
+    except Exception as e:
+        flash('Error al cargar detalles de la película', 'danger')
+        print(f"Error en movie_detail: {e}")
+        return redirect(url_for('movies'))
+
+
+@app.route('/series/<int:series_id>')
+@login_required
+def series_detail(series_id):
+    """Página de detalle de serie"""
+    try:
+        series = db.session.execute(text("""
+            SELECT s.*,
+                   c.name as country_name,
+                   l.name as language_name
+            FROM series s
+            LEFT JOIN country c ON s.country_id = c.id
+            LEFT JOIN language l ON s.language_id = l.id
+            WHERE s.id = :series_id
+        """), {'series_id': series_id}).fetchone()
+        
+        if not series:
+            flash('Serie no encontrada', 'warning')
+            return redirect(url_for('series'))
+        
+        # Obtener categorías
+        categories = db.session.execute(text("""
+            SELECT c.name
+            FROM show_category sc
+            JOIN category c ON sc.category_id = c.id
+            WHERE sc.series_id = :series_id
+        """), {'series_id': series_id}).fetchall()
+        
+        # Obtener actores
+        actors = db.session.execute(text("""
+            SELECT a.first_name, a.last_name, sa.character_name
+            FROM series_actor sa
+            JOIN actor a ON sa.actor_id = a.id
+            WHERE sa.series_id = :series_id
+            LIMIT 10
+        """), {'series_id': series_id}).fetchall()
+        
+        return render_template('series_detail.html', 
+                             series=series, 
+                             categories=categories,
+                             actors=actors)
+    except Exception as e:
+        flash('Error al cargar detalles de la serie', 'danger')
+        print(f"Error en series_detail: {e}")
+        return redirect(url_for('series'))
+    
 # ============================================================================
 #                              MAIN
 # ============================================================================
