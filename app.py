@@ -157,19 +157,53 @@ def login():
 @login_required
 def profile():
     try:
+        # Obtener perfiles del usuario
+        profiles = db.session.execute(text("""
+            SELECT * FROM profiles WHERE user_id = :user_id
+        """), {'user_id': current_user.id}).fetchall()
+
+        # Determinar límite según el plan
+        max_profiles = {
+            'basic': 1,
+            'standard': 2,
+            'premium': 4
+        }.get(current_user.subscription_type, 1)
+
+        # Verificar si puede crear más perfiles
+        can_create_more = len(profiles) < max_profiles
+
+        # Obtener historial de suscripciones (últimos 5 cambios)
         historial_suscripciones = db.session.execute(
-            text("SELECT * FROM subscription_history WHERE user_id = :user_id ORDER BY fecha_cambio DESC LIMIT 5"),
+            text("""
+                SELECT * FROM subscription_history 
+                WHERE user_id = :user_id 
+                ORDER BY fecha_cambio DESC 
+                LIMIT 5
+            """),
             {'user_id': current_user.id}
         ).fetchall()
-    except Exception:
+
+    except Exception as e:
+        print("Error al obtener datos del perfil:", e)
+        profiles = []
         historial_suscripciones = []
-    
-    pagos = Payment.query.filter_by(user_id=current_user.id).order_by(Payment.payment_date.desc()).limit(5).all()
-    
-    return render_template('profile.html', 
-                         user=current_user, 
-                         historial_suscripciones=historial_suscripciones,
-                         pagos=pagos)
+        max_profiles = 1
+        can_create_more = True
+
+    # Obtener pagos recientes (últimos 5)
+    pagos = Payment.query.filter_by(user_id=current_user.id)\
+                         .order_by(Payment.payment_date.desc())\
+                         .limit(5).all()
+
+    # Renderizar todo junto
+    return render_template('profile.html',
+                           user=current_user,
+                           profiles=profiles,
+                           max_profiles=max_profiles,
+                           can_create_more=can_create_more,
+                           historial_suscripciones=historial_suscripciones,
+                           pagos=pagos)
+
 
 
 @app.route('/logout')
@@ -628,6 +662,42 @@ def user_statistics():
     except Exception as e:
         flash('Error al cargar estadísticas', 'danger')
         return redirect(url_for('profile'))
+    
+@app.route('/profile/create', methods=['GET', 'POST'])
+@login_required
+def create_profile():
+    if request.method == 'POST':
+        profile_name = request.form.get('profile_name')
+        profile_type = request.form.get('profile_type', 'adult')
+        
+        try:
+            # Intentar insertar el perfil
+            db.session.execute(text("""
+                INSERT INTO profiles (user_id, profile_name, profile_type, is_main)
+                VALUES (:user_id, :profile_name, :profile_type, false)
+            """), {
+                'user_id': current_user.id,
+                'profile_name': profile_name,
+                'profile_type': profile_type
+            })
+            db.session.commit()
+            
+            flash('Perfil creado exitosamente', 'success')
+            return redirect(url_for('profile'))
+            
+        except Exception as e:
+            db.session.rollback()
+            error_message = str(e)
+            
+            # Detectar si es el error del trigger
+            if 'Has alcanzado el límite de perfiles' in error_message:
+                flash('Has alcanzado el límite de perfiles para tu plan. Actualiza tu suscripción para crear más perfiles.', 'warning')
+            else:
+                flash('Error al crear el perfil', 'danger')
+            
+            return redirect(url_for('profile'))
+    
+    return render_template('create_profile.html')
 
 # Ruta para recomendaciones
 @app.route('/recommendations')
