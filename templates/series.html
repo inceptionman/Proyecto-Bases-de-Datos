@@ -15,25 +15,35 @@
     {% if series_list and series_list|length > 0 %}
         <div class="catalog-grid">
             {% for series in series_list %}
-                <a href="{{ url_for('series_detail', series_id=series.id) }}" class="card-link">
-                    <div class="card">
-                        <!-- 'series' no tiene image_url en tu BBDD, usamos placeholder -->
-                        <img src="https://via.placeholder.com/300x450?text={{ series.title|replace(' ', '+') }}" alt="{{ series.title }}">
-                        
-                        {% if series.imdb_rating %}
-                        <div class="card-rating">
-                            <i class="fas fa-star"></i> {{ series.imdb_rating }}
-                        </div>
+                <div class="card">
+                    <a href="{{ url_for('series_detail', series_id=series.id) }}" class="card-link">
+                        <!-- Usa image_url de la BD si existe, si no usa placeholder -->
+                        {% if series.image_url %}
+                            <img src="{{ series.image_url }}" alt="{{ series.title }}">
+                        {% else %}
+                            <img src="https://via.placeholder.com/300x450?text={{ series.title|replace(' ', '+') }}" alt="{{ series.title }}">
                         {% endif %}
+                    </a>
 
-                        <div class="card-body">
-                            <h3 class="card-title">{{ series.title }}</h3>
-                            <p class="card-desc">
-                                {{ series.total_seasons }} Temporada(s)
-                            </p>
+                    {% if series.imdb_rating %}
+                    <div class="card-rating">
+                        <i class="fas fa-star"></i> {{ series.imdb_rating }}
+                    </div>
+                    {% endif %}
+
+                    <div class="card-body">
+                        <h3 class="card-title">{{ series.title }}</h3>
+                        <p class="card-desc">{{ series.total_seasons }} Temporada(s)</p>
+                        <div style="display:flex; gap:0.5rem; margin-top:0.75rem;">
+                            {% if current_user.is_authenticated %}
+                                <button class="btn btn-sm btn-outline-light btn-add-watchlist" data-id="{{ series.id }}" data-type="series">Añadir a Mi Lista</button>
+                            {% else %}
+                                <a class="btn btn-sm btn-outline-light" href="{{ url_for('login') }}">Inicia sesión para guardar</a>
+                            {% endif %}
+                            <a class="btn btn-sm btn-light" href="{{ url_for('series_detail', series_id=series.id) }}">Ver</a>
                         </div>
                     </div>
-                </a>
+                </div>
             {% endfor %}
         </div>
     {% else %}
@@ -44,4 +54,38 @@
         </div>
     {% endif %}
 </div>
+<script>
+    // Añadir a Mi Lista - usa la API /add-to-watchlist
+    document.querySelectorAll('.btn-add-watchlist').forEach(btn => {
+        btn.addEventListener('click', async function(e) {
+            e.preventDefault();
+            const contentId = this.dataset.id;
+            const contentType = this.dataset.type;
+            this.disabled = true;
+            const original = this.innerText;
+            this.innerText = 'Guardando...';
+            try {
+                const res = await fetch("{{ url_for('add_to_watchlist') }}", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content_id: contentId, content_type: contentType })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    showToast(data.message || 'Agregado a tu lista', 'success');
+                    this.innerText = 'Guardado';
+                } else {
+                    showToast(data.message || 'No se pudo agregar', 'warning');
+                    this.innerText = original;
+                    this.disabled = false;
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Error de red al guardar', 'danger');
+                this.innerText = original;
+                this.disabled = false;
+            }
+        });
+    });
+</script>
 {% endblock %}
