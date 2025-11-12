@@ -595,8 +595,6 @@ def render_page(page):
     else:
         return "Página no encontrada", 404
 
-
-
 # Ruta para búsqueda de contenido con full-text search
 @app.route('/search', methods=['GET'])
 @login_required
@@ -934,7 +932,6 @@ def series_detail(series_id):
         flash('Error al cargar detalles de la serie', 'danger')
         print(f"Error en series_detail: {e}")
         return redirect(url_for('series'))
-    
     
 # ============================================================================
 #                              MAIN
