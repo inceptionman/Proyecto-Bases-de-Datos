@@ -62,6 +62,8 @@ class Movie(db.Model):
     imdb_rating = db.Column(db.Numeric(3, 1))
     image_url = db.Column(db.String(200))
 
+
+
 # (Añade aquí otros modelos si los necesitas en SQLAlchemy, como Country, Language, Series)
 # Por ahora, solo 'Movie' era necesario para arreglar la ruta /movies
 
@@ -776,16 +778,19 @@ def series():
         # Obtener todas las series de la base de datos
         series_list = db.session.execute(text("""
             SELECT id, title, description, release_year, age_rating, 
-                   total_seasons, imdb_rating
+                   total_seasons, imdb_rating, image_url
             FROM series
             ORDER BY imdb_rating DESC NULLS LAST
         """)).fetchall()
         
-        return render_template('series.html', series=series_list) # 'series_list' para no confundir
+        print(f"DEBUG: Se encontraron {len(series_list)} series")  # Para verificar en logs
+        
+        return render_template('series.html', series_list=series_list)  # ← CAMBIO AQUÍ
     except Exception as e:
         flash('Error al cargar series', 'danger')
         print(f"Error en series: {e}")
         return redirect(url_for('home'))
+
 
 
 @app.route('/my-list')
