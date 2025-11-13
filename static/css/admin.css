@@ -1,5 +1,81 @@
-/* Admin specific styles - minimal, uses base.css for main theme */
-.actions{white-space:nowrap}
-.data-table td.actions{min-width:180px}
-.data-table tr:nth-child(even){background:rgba(255,255,255,0.02)}
-.data-table tr:hover{background:rgba(255,255,255,0.03)}
+/* Admin area styles - extend base theme */
+.admin-dashboard {
+	padding: 1.25rem 0.5rem;
+}
+.admin-dashboard h1 {
+	color: #fff;
+	margin-bottom: 1rem;
+}
+.admin-links {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+	gap: 1rem;
+}
+.admin-links li a {
+	display: block;
+	padding: 12px 14px;
+	background: rgba(255,255,255,0.03);
+	color: var(--muted);
+	border-radius: 8px;
+	text-decoration: none;
+	font-weight: 600;
+	transition: transform 0.15s ease, background 0.15s ease;
+}
+.admin-links li a:hover {
+	transform: translateY(-3px);
+	background: rgba(229,9,20,0.08);
+	color: #fff;
+}
+
+/* Tables in admin */
+.data-table {
+	width: 100%;
+	border-collapse: collapse;
+}
+.data-table thead th {
+	background: rgba(0,0,0,0.25);
+	color: var(--muted);
+	font-weight: 700;
+	padding: 12px;
+}
+.data-table td, .data-table th {
+	padding: 10px 12px;
+	border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.data-table tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+.data-table tr:hover { background: rgba(255,255,255,0.03); }
+
+.actions { white-space: nowrap; }
+.data-table td.actions { min-width: 180px; }
+
+/* Buttons */
+.btn-primary {
+	background: var(--netflix-red);
+	color: #fff;
+	border-radius: 6px;
+	padding: 8px 12px;
+	text-decoration: none;
+}
+.btn-secondary {
+	background: rgba(255,255,255,0.06);
+	color: var(--muted);
+	border-radius: 6px;
+	padding: 8px 12px;
+}
+.btn-sm {
+	padding: 6px 8px;
+	font-size: 0.85rem;
+	border-radius: 6px;
+}
+
+@media (max-width: 768px) {
+	.admin-links { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+	.data-table thead { display: none; }
+	.data-table, .data-table tbody, .data-table tr, .data-table td { display: block; width: 100%; }
+	.data-table tr { margin-bottom: 0.75rem; }
+	.data-table td { text-align: right; padding-left: 50%; position: relative; }
+	.data-table td::before { content: attr(data-label); position: absolute; left: 12px; width: calc(50% - 24px); text-align: left; font-weight:600; }
+}

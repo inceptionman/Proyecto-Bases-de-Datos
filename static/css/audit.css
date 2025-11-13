@@ -1,3 +1,19 @@
 /* Audit pages styles */
-.data-table th{font-weight:700}
-.data-table td{font-family:monospace}
+.data-table thead th { font-weight: 700; background: rgba(0,0,0,0.2); }
+.data-table td { font-family: 'Courier New', Courier, monospace; color: var(--muted); }
+.data-table tbody tr:nth-child(even) { background: rgba(255,255,255,0.015); }
+.data-table tbody tr:hover { background: rgba(255,255,255,0.03); }
+
+.audit-highlight { background: rgba(229,9,20,0.08); padding:6px 8px; border-radius:6px; color:#fff; }
+
+.audit-meta { color: #cfcfcf; font-size:0.9rem; }
+
+/* Compact table for audit logs */
+.data-table th, .data-table td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+
+@media (max-width:768px) {
+	.data-table thead { display:none; }
+	.data-table, .data-table tbody, .data-table tr, .data-table td { display:block; width:100%; }
+	.data-table td { text-align:right; padding-left:50%; position:relative; }
+	.data-table td::before { content: attr(data-label); position:absolute; left:12px; width:calc(50% - 24px); text-align:left; font-weight:600; }
+}
