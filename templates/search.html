@@ -25,7 +25,7 @@
                     placeholder="Buscar películas, series, actores, categorías..." 
                     value="{{ query if query else '' }}"
                     autofocus
-                    required
+                    
                 >
                 <button type="submit" class="search-btn">
                     <i class="fas fa-arrow-right"></i>
@@ -68,9 +68,14 @@
                                         </div>
                                     {% endif %}
                                 {% else %}
-                                    <div class="placeholder-image">
-                                        <i class="fas fa-tv"></i>
-                                    </div>
+                                    {# Mostrar imagen de series si existe image_url, si no usar placeholder #}
+                                    {% if result.image_url %}
+                                        <img src="{{ result.image_url }}" alt="{{ result.title }}">
+                                    {% else %}
+                                        <div class="placeholder-image">
+                                            <i class="fas fa-tv"></i>
+                                        </div>
+                                    {% endif %}
                                 {% endif %}
                                 <div class="card-overlay">
                                     <button class="play-btn">

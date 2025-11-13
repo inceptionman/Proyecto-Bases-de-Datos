@@ -673,7 +673,43 @@ def search_content():
             text("SELECT * FROM search_content(:query)"),
             {'query': query}
         ).fetchall()
-        return render_template('search.html', results=results, query=query)
+
+        # Normalizar resultados a dicts y, si faltan imágenes para series,
+        # intentar recuperarlas directamente desde la tabla `series`.
+        normalized_results = []
+        for row in results:
+            try:
+                data = dict(row._mapping)
+            except Exception:
+                try:
+                    data = dict(row)
+                except Exception:
+                    # Saltar si no podemos convertir
+                    continue
+
+            # Si es una serie y image_url es vacío/None, intentar buscar en la tabla series
+            if data.get('content_type') == 'series' and not data.get('image_url'):
+                try:
+                    img = db.session.execute(
+                        text("SELECT image_url FROM series WHERE id = :id"),
+                        {'id': data.get('id')}
+                    ).scalar()
+                    data['image_url'] = img
+                except Exception as e:
+                    print(f"DEBUG: error al obtener image_url desde series para id={data.get('id')}: {e}")
+
+            normalized_results.append(data)
+
+        # DEBUG breve: listar claves y sample image_url
+        try:
+            if normalized_results:
+                print("DEBUG: normalized result keys:", list(normalized_results[0].keys()))
+                print("DEBUG: sample content_type:", normalized_results[0].get('content_type'))
+                print("DEBUG: sample image_url:", normalized_results[0].get('image_url'))
+        except Exception as e:
+            print("DEBUG: error al imprimir normalized_results:", e)
+
+        return render_template('search.html', results=normalized_results, query=query)
     except Exception as e:
         flash('Error en la búsqueda', 'danger')
         print(f"Error en search_content: {e}")
