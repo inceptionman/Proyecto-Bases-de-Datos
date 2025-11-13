@@ -1,48 +1,192 @@
 {% extends 'base.html' %}
 
-{% block title %}Administración de Usuarios{% endblock %}
-
-{% block extra_css %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
-{% endblock %}
+{% block title %}Panel de Administración - Usuarios{% endblock %}
 
 {% block content %}
-  <h1>Panel de administración - Usuarios</h1>
+<div style="max-width: 1400px; margin: 0 auto; padding: 40px 60px;">
+    
+    <!-- Header -->
+    <div style="background: linear-gradient(90deg, #E50914 0%, #8b0000 100%); padding: 2rem; border-radius: 8px; margin-bottom: 2rem;">
+        <h1 style="color: #fff; margin: 0; font-size: 2.5rem;">Panel de Administración</h1>
+        <p style="color: #ddd; margin: 0.5rem 0 0 0;">Gestión de usuarios del sistema</p>
+    </div>
 
-  {% if users and users|length > 0 %}
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Usuario</th>
-          <th>Email</th>
-          <th>Activo</th>
-          <th>Plan</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for u in users %}
-        <tr>
-          <td>{{ u.id }}</td>
-          <td>{{ u.username }}</td>
-          <td>{{ u.email }}</td>
-          <td>{{ 'Sí' if u.is_active else 'No' }}</td>
-          <td>{{ u.subscription_type }}</td>
-          <td class="actions">
-            <form method="post" action="{{ url_for('deactivate_user', user_id=u.id) }}" style="display:inline">
-              <button class="btn danger" type="submit">Desactivar</button>
-            </form>
-            <form method="post" action="{{ url_for('delete_user', user_id=u.id) }}" style="display:inline; margin-left:8px">
-              <button class="btn danger-outline" type="submit">Eliminar</button>
-            </form>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% else %}
-    <p>No hay usuarios registrados.</p>
-  {% endif %}
+    <!-- Lista de Usuarios -->
+    <h2 style="color: #fff; margin-bottom: 1rem; font-size: 1.8rem;">Lista de Usuarios</h2>
+    <p style="color: #737373; margin-bottom: 1.5rem;">Total de usuarios: <strong style="color: #E50914;">{{ total_users }}</strong></p>
 
+    {% if users and users|length > 0 %}
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; background: #1f1f1f; border-radius: 8px; overflow: hidden;">
+                <thead>
+                    <tr style="background-color: #E50914;">
+                        <th style="padding: 15px; text-align: left; color: #fff; font-weight: 700;">ID</th>
+                        <th style="padding: 15px; text-align: left; color: #fff; font-weight: 700;">Username</th>
+                        <th style="padding: 15px; text-align: left; color: #fff; font-weight: 700;">Email</th>
+                        <th style="padding: 15px; text-align: left; color: #fff; font-weight: 700;">Plan</th>
+                        <th style="padding: 15px; text-align: center; color: #fff; font-weight: 700;">Estado</th>
+                        <th style="padding: 15px; text-align: center; color: #fff; font-weight: 700;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                        <tr style="border-bottom: 1px solid #2a2a2a; transition: background 0.2s;" 
+                            onmouseover="this.style.background='#2a2a2a'" 
+                            onmouseout="this.style.background='transparent'">
+                            
+                            <!-- ID -->
+                            <td style="padding: 15px; color: #fff; font-weight: 600;">
+                                {{ user.id }}
+                            </td>
+                            
+                            <!-- Username -->
+                            <td style="padding: 15px; color: #fff;">
+                                {{ user.username }}
+                                {% if user.is_admin %}
+                                    <span style="background: #ffc107; color: #000; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; margin-left: 5px;">
+                                        👑 ADMIN
+                                    </span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Email -->
+                            <td style="padding: 15px; color: #fff;">{{ user.email }}</td>
+                            
+                            <!-- Plan -->
+                            <td style="padding: 15px;">
+                                {% if user.subscription_type == 'basic' %}
+                                    <span style="background: #808080; color: #fff; padding: 5px 12px; border-radius: 4px; font-size: 0.85rem; display: inline-block;">
+                                         BASIC
+                                    </span>
+                                {% elif user.subscription_type == 'standard' %}
+                                    <span style="background: #E50914; color: #fff; padding: 5px 12px; border-radius: 4px; font-size: 0.85rem; display: inline-block;">
+                                         STANDARD
+                                    </span>
+                                {% elif user.subscription_type == 'premium' %}
+                                    <span style="background: #ffc107; color: #000; padding: 5px 12px; border-radius: 4px; font-size: 0.85rem; display: inline-block;">
+                                         PREMIUM
+                                    </span>
+                                {% else %}
+                                    <span style="background: #333; color: #fff; padding: 5px 12px; border-radius: 4px; font-size: 0.85rem; display: inline-block;">
+                                        N/A
+                                    </span>
+                                {% endif %}
+                                
+                                <!-- Indicador de suscripción activa -->
+                                {% if user.subscription_active %}
+                                    <span style="color: #28a745; margin-left: 5px;" title="Suscripción activa"></span>
+                                {% else %}
+                                    <span style="color: #dc3545; margin-left: 5px;" title="Suscripción inactiva"></span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Estado -->
+                            <td style="padding: 15px; text-align: center;">
+                                {% if user.is_active %}
+                                    <span style="color: #28a745; font-weight: bold; font-size: 1.1rem;"> Activo</span>
+                                {% else %}
+                                    <span style="color: #dc3545; font-weight: bold; font-size: 1.1rem;"> Inactivo</span>
+                                {% endif %}
+                            </td>
+                            
+                            <!-- Acciones -->
+                            <td style="padding: 15px; text-align: center;">
+                                <div style="display: flex; gap: 8px; justify-content: center;">
+                                    {% if user.is_active %}
+                                        <form method="POST" action="{{ url_for('deactivate_user', user_id=user.id) }}" style="display: inline;">
+                                            <button type="submit" class="btn-action btn-danger" onclick="return confirm('¿Desactivar usuario {{ user.username }}?')">
+                                                <i class="fas fa-ban"></i> Desactivar
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <form method="POST" action="{{ url_for('deactivate_user', user_id=user.id) }}" style="display: inline;">
+                                            <button type="submit" class="btn-action btn-success" onclick="return confirm('¿Activar usuario {{ user.username }}?')">
+                                                <i class="fas fa-check"></i> Activar
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                    
+                                    <form method="POST" action="{{ url_for('delete_user', user_id=user.id) }}" style="display: inline;">
+                                        <button type="submit" class="btn-action btn-delete" onclick="return confirm('⚠️ ¿ELIMINAR permanentemente a {{ user.username }}?')">
+                                            <i class="fas fa-trash"></i> Eliminar
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: 3rem; background: #2a2a2a; border-radius: 8px;">
+            <i class="fas fa-inbox" style="font-size: 3rem; color: #E50914; margin-bottom: 1rem; display: block;"></i>
+            <h3 style="color: #fff; margin-bottom: 0.5rem;">Sin usuarios</h3>
+            <p style="color: #737373;">No hay usuarios registrados en el sistema</p>
+        </div>
+    {% endif %}
+
+    <!-- Botones de Auditoría -->
+
+</div>
+
+<style>
+.btn-action {
+    border: none;
+    padding: 8px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+    color: #fff;
+    font-family: 'Montserrat', Arial, sans-serif;
+    font-weight: 600;
+}
+
+.btn-danger {
+    background-color: #E50914;
+}
+
+.btn-danger:hover {
+    background-color: #f40612;
+    transform: translateY(-2px);
+}
+
+.btn-success {
+    background-color: #28a745;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+    transform: translateY(-2px);
+}
+
+.btn-delete {
+    background-color: #dc3545;
+}
+
+.btn-delete:hover {
+    background-color: #c82333;
+    transform: translateY(-2px);
+}
+
+.btn-audit {
+    background-color: #333;
+    color: #fff;
+    border: 2px solid #E50914;
+    padding: 12px 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.3s;
+    font-weight: 600;
+}
+
+.btn-audit:hover {
+    background-color: #E50914;
+    border-color: #E50914;
+    transform: translateY(-2px);
+}
+</style>
 {% endblock %}

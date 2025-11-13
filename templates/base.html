@@ -129,8 +129,9 @@
             <a href="{{ url_for('subscription_history') }}"><i class="fas fa-history"></i> Suscripción</a>
             
             {% if current_user.is_admin %}
-              <a href="{{ url_for('admin_users') }}"><i class="fas fa-cog"></i> Admin</a>
+              <a href="{{ url_for('admin_dashboard') }}"><i class="fas fa-cog"></i> Admin</a>
             {% endif %}
+
 
             <div class="user-menu">
               <span>{{ current_user.username }}</span>

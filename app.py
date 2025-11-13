@@ -618,17 +618,36 @@ def subscription_history():
 
 @app.route('/admin/users')
 @login_required
-@admin_required
 def admin_users():
-    """Panel de administración de usuarios"""
-    # Deberías añadir una comprobación de 'is_admin' aquí
-    # if not current_user.is_admin:
-    #     flash('Acceso no autorizado', 'danger')
-    #     return redirect(url_for('home'))
+    """Panel de administración - Lista de usuarios"""
+    # Verificar si el usuario es admin
+    if not current_user.is_admin:
+        flash('No tienes permisos de administrador', 'danger')
+        return redirect(url_for('home'))
+    
+    try:
+        # Obtener todos los usuarios
+        users = db.session.execute(text("""
+            SELECT 
+                id,
+                username,
+                email,
+                subscription_type,
+                subscription_active,
+                is_active,
+                is_admin
+            FROM "user"
+            ORDER BY id DESC
+        """)).fetchall()
         
-    users = User.query.all()
-    # Asumiendo que tienes un 'admin_users.html'
-    return render_template('admin_users.html', users=users)
+        return render_template('admin_users.html', 
+                             users=users, 
+                             total_users=len(users))
+    except Exception as e:
+        flash('Error al cargar usuarios', 'danger')
+        print(f"Error: {e}")
+        return redirect(url_for('home'))
+
 
 
 @app.route('/admin/deactivate-user/<int:user_id>', methods=['POST'])
@@ -1269,8 +1288,6 @@ def admin_analytics():
     except Exception as e:
         flash('Error al cargar análisis', 'danger')
         return redirect(url_for('home'))
-
-
 
 # ============================================================================
 # RUTAS DE CONTENIDO - Agregar estas rutas a tu app.py
