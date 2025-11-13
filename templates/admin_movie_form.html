@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if movie %}Editar{% else %}Añadir{% endif %} Película{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin_movies.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>{% if movie %}Editar{% else %}Añadir{% endif %} Película</h1>
+    <form method="post">
+        <div class="form-group">
+            <label>Título</label>
+            <input class="form-control" name="title" value="{{ movie.title if movie else '' }}" required>
+        </div>
+        <div class="form-group">
+            <label>Descripción</label>
+            <textarea class="form-control" name="description">{{ movie.description if movie else '' }}</textarea>
+        </div>
+        <div class="form-row">
+            <div class="form-group col-md-3">
+                <label>Año</label>
+                <input class="form-control" name="release_year" value="{{ movie.release_year if movie else '' }}">
+            </div>
+            <div class="form-group col-md-3">
+                <label>Rating (IMDB)</label>
+                <input class="form-control" name="imdb_rating" value="{{ movie.imdb_rating if movie else '' }}">
+            </div>
+            <div class="form-group col-md-3">
+                <label>Edad</label>
+                <input class="form-control" name="age_rating" value="{{ movie.age_rating if movie else '' }}">
+            </div>
+            <div class="form-group col-md-3">
+                <label>Duración (min)</label>
+                <input class="form-control" name="duration_minutes" value="{{ movie.duration_minutes if movie else '' }}">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Image URL</label>
+            <input class="form-control" name="image_url" value="{{ movie.image_url if movie else '' }}">
+        </div>
+        <button class="btn btn-primary" type="submit">Guardar</button>
+        <a class="btn btn-secondary" href="{{ url_for('admin_movies') }}">Cancelar</a>
+    </form>
+</div>
+{% endblock %}
