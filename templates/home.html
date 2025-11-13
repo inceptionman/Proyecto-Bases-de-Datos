@@ -171,7 +171,7 @@
                     <div class="movie-title">{{ m.title }}</div>
                     <div class="movie-description">{{ m.description or 'Sin descripción disponible' }}</div>
                     <div style="margin-top: 0.5rem;">
-                        <button class="btn-play" style="width: 100%; padding: 0.5rem;"><i class="fas fa-play"></i></button>
+                        <a class="btn-play" href="{{ url_for('play_movie', movie_id=m.id) }}" style="display:inline-block; text-align:center; width: 100%; padding: 0.5rem;"><i class="fas fa-play"></i></a>
                     </div>
                 </div>
             </div>
@@ -183,6 +183,32 @@
         <h2>Sin contenido disponible</h2>
         <p>Próximamente habrá nuevas películas y series para disfrutar</p>
     </div>
+{% endif %}
+
+<!-- Series Destacadas -->
+<h2 class="section-title"><i class="fas fa-tv"></i> Series Destacadas</h2>
+
+{% if series_list and series_list|length > 0 %}
+    <div class="movies-grid">
+        {% for s in series_list %}
+            <div class="movie-card">
+                {% if s.image_url %}
+                    <img src="{{ s.image_url }}" alt="{{ s.title }}" loading="lazy">
+                {% else %}
+                    <img src="https://via.placeholder.com/200x300?text={{ s.title }}" alt="{{ s.title }}">
+                {% endif %}
+                <div class="movie-overlay">
+                    <div class="movie-title">{{ s.title }}</div>
+                    <div class="movie-description">{{ s.description or 'Sin descripción disponible' }}</div>
+                    <div style="margin-top: 0.5rem;">
+                        <a class="btn-play" href="{{ url_for('play_series', series_id=s.id) }}" style="display:inline-block; text-align:center; width: 100%; padding: 0.5rem;"><i class="fas fa-play"></i></a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <!-- No mostrar nada si no hay series destacadas -->
 {% endif %}
 
 <!-- Mensaje si no está autenticado -->

@@ -115,7 +115,20 @@ def home():
     
     # Esta consulta usa el modelo Movie actualizado
     movies = Movie.query.order_by(Movie.imdb_rating.desc().nulls_last()).limit(12).all()
-    return render_template('home.html', movies=movies)
+
+    # Obtener series destacadas (top por rating)
+    try:
+        series_list = db.session.execute(text("""
+            SELECT id, title, description, imdb_rating, image_url
+            FROM series
+            ORDER BY imdb_rating DESC NULLS LAST
+            LIMIT 8
+        """)).fetchall()
+    except Exception as e:
+        print(f"DEBUG: error fetching featured series: {e}")
+        series_list = []
+
+    return render_template('home.html', movies=movies, series_list=series_list)
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -1117,11 +1130,21 @@ def add_to_watchlist():
     """API para agregar contenido a la watchlist"""
     try:
         data = request.get_json()
+        print(f"DEBUG add_to_watchlist payload: {data}")
         content_id = data.get('content_id')
         content_type = data.get('content_type')
         # Si el cliente envía un profile_id, validarlo
         requested_profile_id = data.get('profile_id')
         profile_id = None
+
+        # Validaciones básicas
+        if not content_id or not content_type:
+            return {'success': False, 'message': 'content_id y content_type son requeridos'}, 400
+
+        try:
+            content_id = int(content_id)
+        except Exception:
+            return {'success': False, 'message': 'content_id inválido'}, 400
 
         if requested_profile_id:
             profile = db.session.execute(text("""
@@ -1161,6 +1184,7 @@ def add_to_watchlist():
             """), {'profile_id': profile_id, 'content_id': content_id}).fetchone()
         
         if existing:
+            print('DEBUG: ya existe en watchlist')
             return {'success': False, 'message': 'Ya está en tu lista'}, 400
 
         # Agregar a la watchlist y devolver el id insertado
@@ -1177,10 +1201,16 @@ def add_to_watchlist():
                 RETURNING id
             """), {'profile_id': profile_id, 'content_id': content_id})
 
-        inserted = result.fetchone()
+        # Obtener el id insertado de forma robusta
+        try:
+            watchlist_id = result.scalar()
+        except Exception:
+            inserted = result.fetchone()
+            watchlist_id = (inserted[0] if inserted is not None and len(inserted) > 0 else None)
+
         db.session.commit()
 
-        watchlist_id = inserted.id if inserted is not None else None
+        print(f"DEBUG: inserted watchlist id: {watchlist_id}")
         return {'success': True, 'message': 'Agregado a tu lista', 'watchlist_id': watchlist_id}
     
     except Exception as e:
