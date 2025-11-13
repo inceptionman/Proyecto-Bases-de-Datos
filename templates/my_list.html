@@ -20,6 +20,16 @@
                 </select>
             </div>
         {% endif %}
+            {% if current_profile %}
+                <div class="profile-selector">
+                    <label for="profile">Viendo como:</label>
+                    <select name="profile" id="profile">
+                        {% for p in profiles %}
+                            <option value="{{ p.id }}" {% if p.id == current_profile.id %}selected{% endif %}>{{ p.profile_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            {% endif %}
 
     </div>
 
@@ -90,5 +100,29 @@
             }
         });
     });
+        // Cambiar perfil desde Mi Lista
+        const profileSelect = document.getElementById('profile');
+        if (profileSelect) {
+            profileSelect.addEventListener('change', async function() {
+                const pid = this.value;
+                try {
+                    const res = await fetch("{{ url_for('switch_profile') }}", {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ profile_id: parseInt(pid) })
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.success) {
+                        showToast('Perfil cambiado', 'success');
+                        setTimeout(() => location.reload(), 400);
+                    } else {
+                        showToast(data.message || 'No se pudo cambiar el perfil', 'warning');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showToast('Error de red al cambiar perfil', 'danger');
+                }
+            });
+        }
 </script>
 {% endblock %}

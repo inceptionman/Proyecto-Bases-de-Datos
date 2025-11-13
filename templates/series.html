@@ -10,6 +10,16 @@
 <div class="catalog-container">
     <div class="catalog-header">
         <h2><i class="fas fa-tv"></i> Todas las Series</h2>
+        {% if profiles and profiles|length > 0 %}
+        <div class="profile-selector" style="margin-left:auto;">
+            <label for="profile-select" style="margin-right:0.5rem;color:#ddd;">Perfil:</label>
+            <select id="profile-select" class="form-select form-select-sm" style="display:inline-block; width:auto;">
+                {% for p in profiles %}
+                    <option value="{{ p.id }}" {% if current_profile_id and current_profile_id == p.id %}selected{% endif %}>{{ p.profile_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
     </div>
 
     {% if series_list and series_list|length > 0 %}
@@ -40,7 +50,7 @@
                             {% else %}
                                 <a class="btn btn-sm btn-outline-light" href="{{ url_for('login') }}">Inicia sesión para guardar</a>
                             {% endif %}
-                            <a class="btn btn-sm btn-light" href="{{ url_for('series_detail', series_id=series.id) }}">Ver</a>
+                            <a class="btn btn-sm btn-light" href="{{ url_for('play_series', series_id=series.id) }}">Ver</a>
                         </div>
                     </div>
                 </div>
@@ -65,10 +75,17 @@
             const original = this.innerText;
             this.innerText = 'Guardando...';
             try {
+                // Obtener profile seleccionado si existe
+                const profileSelect = document.getElementById('profile-select');
+                const profileId = profileSelect ? profileSelect.value : null;
+
+                const payload = { content_id: contentId, content_type: contentType };
+                if (profileId) payload.profile_id = parseInt(profileId);
+
                 const res = await fetch("{{ url_for('add_to_watchlist') }}", {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ content_id: contentId, content_type: contentType })
+                    body: JSON.stringify(payload)
                 });
                 const data = await res.json();
                 if (res.ok && data.success) {

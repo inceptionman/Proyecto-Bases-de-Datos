@@ -19,7 +19,8 @@
   </div>
 
   <div class="row">
-    {% for p in profiles %}
+    {% if profiles and profiles|length > 0 %}
+      {% for p in profiles %}
       <div class="col-md-3">
         <div class="card" style="background:#222; padding:1rem; margin-bottom:1rem;">
           <h5 style="color:#fff;">{{ p.profile_name }}</h5>
@@ -34,7 +35,16 @@
           {% endif %}
         </div>
       </div>
-    {% endfor %}
+      {% endfor %}
+    {% else %}
+      <div class="col-12">
+        <div class="alert alert-info" role="alert">
+          No se encontraron perfiles para tu cuenta. Crea uno usando el formulario arriba.
+          <br>
+          <small style="color:#ddd;">(Depuración: user_id={{ current_user.id }}, encontrados={{ profiles_count if profiles_count is defined else 0 }})</small>
+        </div>
+      </div>
+    {% endif %}
   </div>
 </div>
 {% endblock %}
