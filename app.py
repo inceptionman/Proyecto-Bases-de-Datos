@@ -1,7 +1,8 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, abort
 from config import Config
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from functools import wraps
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import text
@@ -75,6 +76,7 @@ class User(UserMixin, db.Model):
     is_active = db.Column(db.Boolean, default=True)
     subscription_type = db.Column(db.String(50), nullable=True, default='basic')
     subscription_active = db.Column(db.Boolean, default=True)
+    is_admin = db.Column(db.Boolean, default=False)
     #subscription_end = db.Column(db.Date, nullable=True) # Asumido de tu lógica
     #preferred_genres = db.Column(db.Text, nullable=True) # Asumido
     payments = db.relationship('Payment', backref='user', lazy=True)
@@ -103,6 +105,19 @@ class Movie(db.Model):
     country_id = db.Column(db.Integer, db.ForeignKey('country.id'))
     language_id = db.Column(db.Integer, db.ForeignKey('language.id'))
     duration_minutes = db.Column(db.Integer)
+    imdb_rating = db.Column(db.Numeric(3, 1))
+    image_url = db.Column(db.String(200))
+
+
+# Modelo Series para CRUD en admin
+class Series(db.Model):
+    __tablename__ = 'series'
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text)
+    release_year = db.Column(db.Integer)
+    age_rating = db.Column(db.String(10))
+    total_seasons = db.Column(db.Integer)
     imdb_rating = db.Column(db.Numeric(3, 1))
     image_url = db.Column(db.String(200))
 
@@ -146,6 +161,20 @@ def check_subscription_status():
                         db.session.commit()
     except Exception:
         db.session.rollback()
+
+
+# Decorador para rutas de administrador
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return redirect(url_for('login'))
+        # Comprueba el flag is_admin en el modelo User
+        if not getattr(current_user, 'is_admin', False):
+            flash('Acceso no autorizado: necesitas permisos de administrador', 'danger')
+            return redirect(url_for('home'))
+        return f(*args, **kwargs)
+    return decorated
 
 
 # ============================================================================
@@ -589,6 +618,7 @@ def subscription_history():
 
 @app.route('/admin/users')
 @login_required
+@admin_required
 def admin_users():
     """Panel de administración de usuarios"""
     # Deberías añadir una comprobación de 'is_admin' aquí
@@ -603,6 +633,7 @@ def admin_users():
 
 @app.route('/admin/deactivate-user/<int:user_id>', methods=['POST'])
 @login_required
+@admin_required
 def deactivate_user(user_id):
     """Desactivar usuario (soft delete)"""
     # (Añadir comprobación de admin)
@@ -626,6 +657,7 @@ def deactivate_user(user_id):
 
 @app.route('/admin/delete-user/<int:user_id>', methods=['POST'])
 @login_required
+@admin_required
 def delete_user(user_id):
     """Eliminar usuario completamente"""
     # (Añadir comprobación de admin)
@@ -658,6 +690,7 @@ def delete_user(user_id):
 
 @app.route('/admin/audit-users')
 @login_required
+@admin_required
 def audit_users():
     """Ver historial de auditoría de usuarios"""
     # (Añadir comprobación de admin)
@@ -680,6 +713,7 @@ def audit_users():
 
 @app.route('/admin/audit-payments')
 @login_required
+@admin_required
 def audit_payments():
     """Ver historial de auditoría de pagos"""
     # (Añadir comprobación de admin)
@@ -698,6 +732,212 @@ def audit_payments():
     
     # Asumiendo que tienes un 'audit_payments.html'
     return render_template('audit_payments.html', audit_records=audit_records)
+
+
+# =====================
+# ADMIN: DASHBOARD + CRUD
+# =====================
+
+
+@app.route('/admin')
+@login_required
+@admin_required
+def admin_dashboard():
+    return render_template('admin_dashboard.html')
+
+
+@app.route('/admin/movies')
+@login_required
+@admin_required
+def admin_movies():
+    movies = Movie.query.order_by(Movie.title.asc()).all()
+    return render_template('admin_movies.html', movies=movies)
+
+
+@app.route('/admin/movies/add', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def admin_add_movie():
+    if request.method == 'POST':
+        title = request.form.get('title')
+        description = request.form.get('description')
+        release_year = request.form.get('release_year') or None
+        age_rating = request.form.get('age_rating') or ''
+        duration_minutes = request.form.get('duration_minutes') or None
+        country_id = request.form.get('country_id') or None
+        language_id = request.form.get('language_id') or None
+        imdb_rating = request.form.get('imdb_rating') or None
+        image_url = request.form.get('image_url') or None
+
+        try:
+            movie = Movie(
+                title=title,
+                description=description,
+                release_year=int(release_year) if release_year else None,
+                age_rating=age_rating,
+                duration_minutes=int(duration_minutes) if duration_minutes else None,
+                country_id=int(country_id) if country_id else None,
+                language_id=int(language_id) if language_id else None,
+                imdb_rating=float(imdb_rating) if imdb_rating else None,
+                image_url=image_url
+            )
+            db.session.add(movie)
+            db.session.commit()
+            flash('Película añadida correctamente', 'success')
+            return redirect(url_for('admin_movies'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al añadir película: {e}', 'danger')
+
+    return render_template('admin_movie_form.html', movie=None)
+
+
+@app.route('/admin/movies/edit/<int:movie_id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def admin_edit_movie(movie_id):
+    movie = Movie.query.get(movie_id)
+    if not movie:
+        flash('Película no encontrada', 'danger')
+        return redirect(url_for('admin_movies'))
+
+    if request.method == 'POST':
+        movie.title = request.form.get('title')
+        movie.description = request.form.get('description')
+        ry = request.form.get('release_year')
+        movie.release_year = int(ry) if ry else None
+        movie.age_rating = request.form.get('age_rating') or movie.age_rating
+        dm = request.form.get('duration_minutes')
+        movie.duration_minutes = int(dm) if dm else None
+        movie.country_id = int(request.form.get('country_id')) if request.form.get('country_id') else None
+        movie.language_id = int(request.form.get('language_id')) if request.form.get('language_id') else None
+        ir = request.form.get('imdb_rating')
+        movie.imdb_rating = float(ir) if ir else None
+        movie.image_url = request.form.get('image_url') or movie.image_url
+
+        try:
+            db.session.commit()
+            flash('Película actualizada', 'success')
+            return redirect(url_for('admin_movies'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al actualizar: {e}', 'danger')
+
+    return render_template('admin_movie_form.html', movie=movie)
+
+
+@app.route('/admin/movies/delete/<int:movie_id>', methods=['POST'])
+@login_required
+@admin_required
+def admin_delete_movie(movie_id):
+    movie = Movie.query.get(movie_id)
+    if not movie:
+        flash('Película no encontrada', 'danger')
+        return redirect(url_for('admin_movies'))
+
+    try:
+        db.session.delete(movie)
+        db.session.commit()
+        flash('Película eliminada', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al eliminar película: {e}', 'danger')
+
+    return redirect(url_for('admin_movies'))
+
+
+@app.route('/admin/series')
+@login_required
+@admin_required
+def admin_series():
+    series_list = Series.query.order_by(Series.title.asc()).all()
+    return render_template('admin_series.html', series_list=series_list)
+
+
+@app.route('/admin/series/add', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def admin_add_series():
+    if request.method == 'POST':
+        title = request.form.get('title')
+        description = request.form.get('description')
+        release_year = request.form.get('release_year') or None
+        age_rating = request.form.get('age_rating') or ''
+        total_seasons = request.form.get('total_seasons') or None
+        imdb_rating = request.form.get('imdb_rating') or None
+        image_url = request.form.get('image_url') or None
+
+        try:
+            s = Series(
+                title=title,
+                description=description,
+                release_year=int(release_year) if release_year else None,
+                age_rating=age_rating,
+                total_seasons=int(total_seasons) if total_seasons else None,
+                imdb_rating=float(imdb_rating) if imdb_rating else None,
+                image_url=image_url
+            )
+            db.session.add(s)
+            db.session.commit()
+            flash('Serie añadida correctamente', 'success')
+            return redirect(url_for('admin_series'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al añadir serie: {e}', 'danger')
+
+    return render_template('admin_series_form.html', series=None)
+
+
+@app.route('/admin/series/edit/<int:series_id>', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def admin_edit_series(series_id):
+    s = Series.query.get(series_id)
+    if not s:
+        flash('Serie no encontrada', 'danger')
+        return redirect(url_for('admin_series'))
+
+    if request.method == 'POST':
+        s.title = request.form.get('title')
+        s.description = request.form.get('description')
+        ry = request.form.get('release_year')
+        s.release_year = int(ry) if ry else None
+        s.age_rating = request.form.get('age_rating') or s.age_rating
+        ts = request.form.get('total_seasons')
+        s.total_seasons = int(ts) if ts else None
+        ir = request.form.get('imdb_rating')
+        s.imdb_rating = float(ir) if ir else None
+        s.image_url = request.form.get('image_url') or s.image_url
+
+        try:
+            db.session.commit()
+            flash('Serie actualizada', 'success')
+            return redirect(url_for('admin_series'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al actualizar serie: {e}', 'danger')
+
+    return render_template('admin_series_form.html', series=s)
+
+
+@app.route('/admin/series/delete/<int:series_id>', methods=['POST'])
+@login_required
+@admin_required
+def admin_delete_series(series_id):
+    s = Series.query.get(series_id)
+    if not s:
+        flash('Serie no encontrada', 'danger')
+        return redirect(url_for('admin_series'))
+
+    try:
+        db.session.delete(s)
+        db.session.commit()
+        flash('Serie eliminada', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al eliminar serie: {e}', 'danger')
+
+    return redirect(url_for('admin_series'))
 
 
 # ============================================================================

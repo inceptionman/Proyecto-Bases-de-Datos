@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin - Películas{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin_movies.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container admin-movies">
+    <h1>Gestión de Películas</h1>
+    <p><a class="btn btn-primary" href="{{ url_for('admin_add_movie') }}">Añadir Película</a></p>
+
+    {% if movies and movies|length > 0 %}
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Título</th>
+                <th>Año</th>
+                <th>Rating</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for movie in movies %}
+            <tr>
+                <td>{{ movie.id }}</td>
+                <td>{{ movie.title }}</td>
+                <td>{{ movie.release_year }}</td>
+                <td>{{ movie.imdb_rating }}</td>
+                <td>
+                    <a class="btn btn-sm btn-secondary" href="{{ url_for('admin_edit_movie', movie_id=movie.id) }}">Editar</a>
+                    <form action="{{ url_for('admin_delete_movie', movie_id=movie.id) }}" method="post" style="display:inline-block;">
+                        <button class="btn btn-sm btn-danger" type="submit">Eliminar</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No hay películas.</p>
+    {% endif %}
+</div>
+{% endblock %}

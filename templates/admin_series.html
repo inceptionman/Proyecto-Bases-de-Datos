@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin - Series{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin_series.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container admin-series">
+    <h1>Gestión de Series</h1>
+    <p><a class="btn btn-primary" href="{{ url_for('admin_add_series') }}">Añadir Serie</a></p>
+
+    {% if series_list and series_list|length > 0 %}
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Título</th>
+                <th>Temporadas</th>
+                <th>Rating</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in series_list %}
+            <tr>
+                <td>{{ s.id }}</td>
+                <td>{{ s.title }}</td>
+                <td>{{ s.total_seasons }}</td>
+                <td>{{ s.imdb_rating }}</td>
+                <td>
+                    <a class="btn btn-sm btn-secondary" href="{{ url_for('admin_edit_series', series_id=s.id) }}">Editar</a>
+                    <form action="{{ url_for('admin_delete_series', series_id=s.id) }}" method="post" style="display:inline-block;">
+                        <button class="btn btn-sm btn-danger" type="submit">Eliminar</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No hay series.</p>
+    {% endif %}
+</div>
+{% endblock %}
