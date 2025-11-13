@@ -20,16 +20,6 @@
                 </select>
             </div>
         {% endif %}
-            {% if current_profile %}
-                <div class="profile-selector">
-                    <label for="profile">Viendo como:</label>
-                    <select name="profile" id="profile">
-                        {% for p in profiles %}
-                            <option value="{{ p.id }}" {% if p.id == current_profile.id %}selected{% endif %}>{{ p.profile_name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            {% endif %}
 
     </div>
 

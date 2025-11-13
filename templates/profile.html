@@ -262,14 +262,77 @@
         <button class="btn btn-netflix" disabled>
             <i class="fas fa-lock"></i> Límite de perfiles alcanzado
         </button>
-        <p style="margin-top: 10px;">
-            Tienes {{ profiles|length }} de {{ max_profiles }} perfiles.
-            <a href="{{ url_for('change_plan') }}">
-                Actualiza tu plan
-            </a> para crear más.
-        </p>
+        {% if user.subscription_type == 'premium' %}
+            <p style="margin-top: 10px;">Has alcanzado el límite de perfiles.</p>
+        {% else %}
+            <p style="margin-top: 10px;">
+                Tienes {{ profiles|length }} de {{ max_profiles }} perfiles.
+                <a href="{{ url_for('change_plan') }}">
+                    Actualiza tu plan
+                </a> para crear más.
+            </p>
+        {% endif %}
     {% endif %}
 </div>
+
+<!-- Cambiar perfil (lista rápida) -->
+<div class="section" style="margin-top:1.5rem;">
+    <h2><i class="fas fa-user-friends"></i> Perfiles</h2>
+    <p style="color:#aaa;">Selecciona el perfil con el que quieres navegar y guardar tu lista.</p>
+    <div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-top:1rem;">
+        {% for p in profiles %}
+            <div style="background:#1b1b1b; padding:0.75rem 1rem; border-radius:8px; display:flex; align-items:center; gap:0.75rem;">
+                <div style="color:#fff; font-weight:bold;">{{ p.profile_name }}</div>
+                {% if selected_profile and selected_profile.id == p.id %}
+                    <span class="badge bg-success">Activo</span>
+                {% else %}
+                    <button class="btn btn-sm btn-outline-light btn-change-profile" data-id="{{ p.id }}">Cambiar</button>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+// Cambiar perfil desde la página de perfil
+document.querySelectorAll('.btn-change-profile').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const pid = this.dataset.id;
+        try {
+            const res = await fetch("{{ url_for('switch_profile') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ profile_id: parseInt(pid) })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast('Perfil cambiado', 'success');
+                setTimeout(() => location.reload(), 300);
+            } else {
+                showToast(data.message || 'No se pudo cambiar el perfil', 'warning');
+            }
+        } catch (err) {
+            console.error(err);
+            showToast('Error de red al cambiar perfil', 'danger');
+        }
+    });
+});
+
+// Hacer que las tarjetas de plan sean clickeables
+document.querySelectorAll('.plan-card').forEach(card => {
+    card.addEventListener('click', function() {
+        const form = this.closest('form');
+        if (form) {
+            form.querySelectorAll('.plan-card').forEach(c => c.classList.remove('active'));
+        }
+        this.classList.add('active');
+        const radio = this.querySelector('input[type="radio"]');
+        if (radio) radio.checked = true;
+    });
+});
+</script>
+{% endblock %}
 
 
 <!-- GESTIÓN DE SUSCRIPCIÓN -->
@@ -399,18 +462,3 @@
 
 {% endblock %}
 
-{% block extra_js %}
-<script>
-    // Hacer que las tarjetas de plan sean clickeables
-    document.querySelectorAll('.plan-card').forEach(card => {
-        card.addEventListener('click', function() {
-            const form = this.closest('form');
-            if (form) {
-                form.querySelectorAll('.plan-card').forEach(c => c.classList.remove('active'));
-            }
-            this.classList.add('active');
-            this.querySelector('input[type="radio"]').checked = true;
-        });
-    });
-</script>
-{% endblock %}

@@ -197,10 +197,23 @@ def profile():
                          .order_by(Payment.payment_date.desc())\
                          .limit(5).all()
 
+    # Determinar perfil seleccionado en sesión
+    selected_id = session.get('profile_id')
+    selected_profile = None
+    if selected_id:
+        for p in profiles:
+            if p.id == selected_id:
+                selected_profile = p
+                break
+
+    if not selected_profile and profiles:
+        selected_profile = profiles[0]
+
     # Renderizar todo junto
     return render_template('profile.html',
                            user=current_user,
                            profiles=profiles,
+                           selected_profile=selected_profile,
                            max_profiles=max_profiles,
                            can_create_more=can_create_more,
                            historial_suscripciones=historial_suscripciones,
@@ -345,6 +358,22 @@ def change_plan():
         return redirect(url_for('profile'))
     
     try:
+        # Verificar límite de perfiles para el nuevo plan
+        max_profiles_for_plan = {
+            'basic': 1,
+            'standard': 2,
+            'premium': 4
+        }[new_plan]
+
+        cnt = db.session.execute(text("SELECT COUNT(*) as cnt FROM profiles WHERE user_id = :uid"), {'uid': current_user.id}).fetchone()
+        current_profiles_count = cnt.cnt if cnt else 0
+
+        if current_profiles_count > max_profiles_for_plan:
+            needed = current_profiles_count - max_profiles_for_plan
+            # Redirigir a /profiles en modo eliminación forzada (sin opción de crear perfiles)
+            flash(f'No se puede cambiar a {new_plan.upper()}: tienes {current_profiles_count} perfiles, el plan permite {max_profiles_for_plan}. Elimina al menos {needed} perfil(es).', 'warning')
+            return redirect(url_for('profiles', deletion_required=1, needed=needed, target=new_plan))
+
         plan_anterior = current_user.subscription_type
         current_user.subscription_type = new_plan
         
@@ -673,17 +702,40 @@ def create_profile():
         profile_type = request.form.get('profile_type', 'adult')
         
         try:
-            # Intentar insertar el perfil
-            db.session.execute(text("""
+            # Comprobar límite según suscripción
+            count_res = db.session.execute(text("SELECT COUNT(*) as cnt FROM profiles WHERE user_id = :uid"), {'uid': current_user.id}).fetchone()
+            current_count = count_res.cnt if count_res is not None else 0
+            max_profiles = {
+                'basic': 1,
+                'standard': 2,
+                'premium': 4
+            }.get(getattr(current_user, 'subscription_type', 'basic'), 1)
+
+            if current_count >= max_profiles:
+                flash('Has alcanzado el límite de perfiles para tu plan. Actualiza tu suscripción para crear más perfiles.', 'warning')
+                return redirect(url_for('profiles'))
+
+            # Determinar si es el primer perfil (será el principal)
+            is_main = True if current_count == 0 else False
+
+            # Intentar insertar el perfil y obtener su id
+            result = db.session.execute(text("""
                 INSERT INTO profiles (user_id, profile_name, profile_type, is_main)
-                VALUES (:user_id, :profile_name, :profile_type, false)
+                VALUES (:user_id, :profile_name, :profile_type, :is_main)
+                RETURNING id
             """), {
                 'user_id': current_user.id,
                 'profile_name': profile_name,
-                'profile_type': profile_type
+                'profile_type': profile_type,
+                'is_main': is_main
             })
+            inserted = result.fetchone()
             db.session.commit()
-            
+
+            # Si se creó, seleccionar el nuevo perfil en la sesión
+            if inserted is not None:
+                session['profile_id'] = inserted.id
+
             flash('Perfil creado exitosamente', 'success')
             return redirect(url_for('profiles'))
             
@@ -697,7 +749,7 @@ def create_profile():
             else:
                 flash('Error al crear el perfil', 'danger')
             
-            return redirect(url_for('profile'))
+            return redirect(url_for('profiles'))
     
     return render_template('create_profile.html')
 
@@ -727,10 +779,16 @@ def profiles():
         if not selected_profile and profiles:
             selected_profile = profiles[0]
 
+        # Ver si venimos en modo eliminación forzada desde cambio de plan
+        deletion_required = request.args.get('deletion_required', default=0, type=int)
+        needed = request.args.get('needed', default=0, type=int)
+        target_plan = request.args.get('target')
+
         # Para depuración: pasar cantidad de perfiles encontrados
         profiles_count = len(profiles) if profiles is not None else 0
-        print(f"DEBUG: user_id={current_user.id} profiles_count={profiles_count}")
-        return render_template('profiles.html', profiles=profiles, selected_profile=selected_profile, profiles_count=profiles_count)
+        print(f"DEBUG: user_id={current_user.id} profiles_count={profiles_count} deletion_required={deletion_required} needed={needed} target={target_plan}")
+
+        return render_template('profiles.html', profiles=profiles, selected_profile=selected_profile, profiles_count=profiles_count, deletion_required=bool(deletion_required), needed=needed, target_plan=target_plan)
     except Exception as e:
         print(f"Error al cargar perfiles: {e}")
         flash('Error al cargar perfiles', 'danger')
@@ -769,6 +827,67 @@ def switch_profile():
         db.session.rollback()
         flash('Error al cambiar perfil', 'danger')
         return redirect(request.referrer or url_for('profiles'))
+
+
+@app.route('/profiles/delete', methods=['POST'])
+@login_required
+def delete_profile():
+    """Eliminar un perfil y su watchlist. No permite eliminar el último perfil."""
+    try:
+        data = request.get_json() or request.form
+        pid = data.get('profile_id')
+        if not pid:
+            if request.is_json:
+                return {'success': False, 'message': 'profile_id es requerido'}, 400
+            flash('profile_id es requerido', 'warning')
+            return redirect(url_for('profiles'))
+
+        # Comprobar que el perfil pertenece al usuario
+        profile = db.session.execute(text("SELECT id, is_main FROM profiles WHERE id = :pid AND user_id = :uid"), {'pid': int(pid), 'uid': current_user.id}).fetchone()
+        if not profile:
+            if request.is_json:
+                return {'success': False, 'message': 'Perfil no encontrado'}, 404
+            flash('Perfil no encontrado', 'danger')
+            return redirect(url_for('profiles'))
+
+        # Contar perfiles del usuario
+        cnt = db.session.execute(text("SELECT COUNT(*) as cnt FROM profiles WHERE user_id = :uid"), {'uid': current_user.id}).fetchone()
+        total = cnt.cnt if cnt else 0
+        if total <= 1:
+            if request.is_json:
+                return {'success': False, 'message': 'No puedes eliminar el último perfil'}, 400
+            flash('No puedes eliminar el último perfil', 'warning')
+            return redirect(url_for('profiles'))
+
+        # Si el perfil es principal, debemos asignar otro como principal
+        is_main = bool(profile.is_main)
+
+        # Eliminar watchlist asociado
+        db.session.execute(text("DELETE FROM watch_list WHERE profile_id = :pid"), {'pid': int(pid)})
+
+        # Eliminar el perfil
+        db.session.execute(text("DELETE FROM profiles WHERE id = :pid"), {'pid': int(pid)})
+
+        # Si era principal, asignar otra como principal (la más antigua)
+        if is_main:
+            new_main = db.session.execute(text("SELECT id FROM profiles WHERE user_id = :uid ORDER BY created_at ASC LIMIT 1"), {'uid': current_user.id}).fetchone()
+            if new_main:
+                db.session.execute(text("UPDATE profiles SET is_main = true WHERE id = :nid"), {'nid': new_main.id})
+
+        db.session.commit()
+
+        if request.is_json:
+            return {'success': True, 'message': 'Perfil eliminado'}
+
+        flash('Perfil eliminado', 'success')
+        return redirect(url_for('profiles'))
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error al eliminar perfil: {e}")
+        if request.is_json:
+            return {'success': False, 'message': 'Error al eliminar perfil'}, 500
+        flash('Error al eliminar perfil', 'danger')
+        return redirect(url_for('profiles'))
 
 # Ruta para recomendaciones
 @app.route('/recommendations')
@@ -899,8 +1018,18 @@ def my_list():
         if not profiles:
             return render_template('my_list.html', watchlist=[], profiles=[], current_profile=None)
         
-        # Usar el perfil principal o el primero
-        main_profile = profiles[0]
+        # Determinar perfil a usar: session -> principal
+        session_pid = session.get('profile_id')
+        main_profile = None
+        if session_pid:
+            for p in profiles:
+                if p.id == session_pid:
+                    main_profile = p
+                    break
+
+        if not main_profile:
+            main_profile = profiles[0]
+
         profile_id = main_profile.id
         
         # Obtener contenido de la watchlist

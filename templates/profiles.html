@@ -8,6 +8,7 @@
   <p>Gestiona los perfiles de tu cuenta.</p>
 
   <div style="margin-top:1rem; margin-bottom:1rem;">
+    {% if not deletion_required %}
     <form method="post" action="{{ url_for('create_profile') }}" class="d-flex gap-2">
       <input name="profile_name" class="form-control" placeholder="Nombre del perfil" required>
       <select name="profile_type" class="form-select" style="max-width:160px;">
@@ -16,6 +17,17 @@
       </select>
       <button class="btn btn-danger">Crear</button>
     </form>
+    {% else %}
+    <div class="alert alert-warning">
+      <strong>Acción requerida:</strong>
+      {% if target_plan %}
+        Para cambiar a <strong>{{ target_plan.upper() }}</strong> debes eliminar al menos <strong>{{ needed }}</strong> perfil(es).
+      {% else %}
+        Debes eliminar al menos <strong>{{ needed }}</strong> perfil(es) antes de cambiar de plan.
+      {% endif %}
+      <div style="margin-top:0.5rem; color:#eee;">Usa los botones "Eliminar" en cada perfil para reducir la cantidad.</div>
+    </div>
+    {% endif %}
   </div>
 
   <div class="row">
@@ -33,6 +45,9 @@
               <button class="btn btn-sm btn-outline-light">Seleccionar</button>
             </form>
           {% endif %}
+          <div style="margin-top:0.5rem;">
+            <button class="btn btn-sm btn-outline-danger btn-delete-profile" data-id="{{ p.id }}">Eliminar</button>
+          </div>
         </div>
       </div>
       {% endfor %}
@@ -48,3 +63,31 @@
   </div>
 </div>
 {% endblock %}
+
+  {% block extra_js %}
+  <script>
+  document.querySelectorAll('.btn-delete-profile').forEach(btn => {
+    btn.addEventListener('click', async function() {
+      const pid = this.dataset.id;
+      if (!confirm('¿Eliminar este perfil y su lista de reproducción asociada? Esta acción no se puede deshacer.')) return;
+      try {
+        const res = await fetch('{{ url_for("delete_profile") }}', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ profile_id: parseInt(pid) })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast('Perfil eliminado', 'success');
+          setTimeout(() => location.reload(), 400);
+        } else {
+          showToast(data.message || 'No se pudo eliminar el perfil', 'warning');
+        }
+      } catch (err) {
+        console.error(err);
+        showToast('Error de red al eliminar perfil', 'danger');
+      }
+    });
+  });
+  </script>
+  {% endblock %}
