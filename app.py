@@ -685,7 +685,7 @@ def create_profile():
             db.session.commit()
             
             flash('Perfil creado exitosamente', 'success')
-            return redirect(url_for('profile'))
+            return redirect(url_for('profiles'))
             
         except Exception as e:
             db.session.rollback()
@@ -700,6 +700,75 @@ def create_profile():
             return redirect(url_for('profile'))
     
     return render_template('create_profile.html')
+
+
+@app.route('/profiles')
+@login_required
+def profiles():
+    """Mostrar y gestionar perfiles del usuario"""
+    try:
+        profiles = db.session.execute(text("""
+            SELECT id, profile_name, profile_type, is_main, created_at
+            FROM profiles
+            WHERE user_id = :user_id
+            ORDER BY is_main DESC, created_at ASC
+        """), {'user_id': current_user.id}).fetchall()
+
+        # Determinar perfil seleccionado en sesión
+        selected_id = session.get('profile_id')
+        selected_profile = None
+        if selected_id:
+            for p in profiles:
+                if p.id == selected_id:
+                    selected_profile = p
+                    break
+
+        # Si no hay seleccionado, marcar el principal
+        if not selected_profile and profiles:
+            selected_profile = profiles[0]
+
+        # Para depuración: pasar cantidad de perfiles encontrados
+        profiles_count = len(profiles) if profiles is not None else 0
+        print(f"DEBUG: user_id={current_user.id} profiles_count={profiles_count}")
+        return render_template('profiles.html', profiles=profiles, selected_profile=selected_profile, profiles_count=profiles_count)
+    except Exception as e:
+        print(f"Error al cargar perfiles: {e}")
+        flash('Error al cargar perfiles', 'danger')
+        return redirect(url_for('profile'))
+
+
+@app.route('/profiles/switch', methods=['POST'])
+@login_required
+def switch_profile():
+    """Cambiar el perfil activo en sesión"""
+    try:
+        profile_id = request.form.get('profile_id') or (request.get_json() and request.get_json().get('profile_id'))
+        if not profile_id:
+            flash('Perfil no especificado', 'warning')
+            return redirect(request.referrer or url_for('profiles'))
+
+        # validar pertenece al usuario
+        profile = db.session.execute(text("""
+            SELECT id FROM profiles WHERE id = :pid AND user_id = :user_id LIMIT 1
+        """), {'pid': int(profile_id), 'user_id': current_user.id}).fetchone()
+
+        if not profile:
+            flash('Perfil inválido', 'danger')
+            return redirect(request.referrer or url_for('profiles'))
+
+        session['profile_id'] = profile.id
+
+        # Si es una petición JS/JSON devolvemos JSON
+        if request.is_json:
+            return {'success': True, 'message': 'Perfil cambiado'}
+
+        flash('Perfil cambiado', 'success')
+        return redirect(request.referrer or url_for('profiles'))
+    except Exception as e:
+        print(f"Error al cambiar perfil: {e}")
+        db.session.rollback()
+        flash('Error al cambiar perfil', 'danger')
+        return redirect(request.referrer or url_for('profiles'))
 
 # Ruta para recomendaciones
 @app.route('/recommendations')
@@ -762,8 +831,18 @@ def movies():
     try:
         # Esta consulta ahora usa el MODELO CORREGIDO
         movies = Movie.query.order_by(Movie.imdb_rating.desc().nulls_last()).all()
-        
-        return render_template('movies.html', movies=movies)
+        # Obtener perfiles del usuario para permitir seleccionar en la UI
+        profiles = db.session.execute(text("""
+            SELECT id, profile_name, profile_type, is_main
+            FROM profiles
+            WHERE user_id = :user_id
+            ORDER BY is_main DESC, created_at ASC
+        """), {'user_id': current_user.id}).fetchall()
+
+        # Determinar perfil actual (si el usuario tiene seleccionado uno en sesión)
+        current_profile_id = session.get('profile_id') if session.get('profile_id') else (profiles[0].id if profiles else None)
+
+        return render_template('movies.html', movies=movies, profiles=profiles, current_profile_id=current_profile_id)
     except Exception as e:
         flash('Error al cargar películas', 'danger')
         print(f"Error en movies: {e}")
@@ -784,8 +863,18 @@ def series():
         """)).fetchall()
         
         print(f"DEBUG: Se encontraron {len(series_list)} series")  # Para verificar en logs
-        
-        return render_template('series.html', series_list=series_list)  # ← CAMBIO AQUÍ
+
+        # Obtener perfiles del usuario para permitir seleccionar en la UI
+        profiles = db.session.execute(text("""
+            SELECT id, profile_name, profile_type, is_main
+            FROM profiles
+            WHERE user_id = :user_id
+            ORDER BY is_main DESC, created_at ASC
+        """), {'user_id': current_user.id}).fetchall()
+
+        current_profile_id = session.get('profile_id') if session.get('profile_id') else (profiles[0].id if profiles else None)
+
+        return render_template('series.html', series_list=series_list, profiles=profiles, current_profile_id=current_profile_id)  # ← CAMBIO AQUÍ
     except Exception as e:
         flash('Error al cargar series', 'danger')
         print(f"Error en series: {e}")
@@ -865,19 +954,34 @@ def add_to_watchlist():
         data = request.get_json()
         content_id = data.get('content_id')
         content_type = data.get('content_type')
-        
-        # Obtener el perfil principal del usuario
-        profile = db.session.execute(text("""
-            SELECT id FROM profiles
-            WHERE user_id = :user_id
-            ORDER BY is_main DESC, created_at ASC
-            LIMIT 1
-        """), {'user_id': current_user.id}).fetchone()
-        
-        if not profile:
-            return {'success': False, 'message': 'No tienes perfiles creados'}, 400
-        
-        profile_id = profile.id
+        # Si el cliente envía un profile_id, validarlo
+        requested_profile_id = data.get('profile_id')
+        profile_id = None
+
+        if requested_profile_id:
+            profile = db.session.execute(text("""
+                SELECT id FROM profiles
+                WHERE id = :pid AND user_id = :user_id
+                LIMIT 1
+            """), {'pid': requested_profile_id, 'user_id': current_user.id}).fetchone()
+
+            if not profile:
+                return {'success': False, 'message': 'Perfil no válido'}, 400
+
+            profile_id = profile.id
+        else:
+            # Obtener el perfil principal del usuario si no se proporcionó
+            profile = db.session.execute(text("""
+                SELECT id FROM profiles
+                WHERE user_id = :user_id
+                ORDER BY is_main DESC, created_at ASC
+                LIMIT 1
+            """), {'user_id': current_user.id}).fetchone()
+
+            if not profile:
+                return {'success': False, 'message': 'No tienes perfiles creados'}, 400
+
+            profile_id = profile.id
         
         # Verificar si ya existe
         if content_type == 'movie':
@@ -893,26 +997,61 @@ def add_to_watchlist():
         
         if existing:
             return {'success': False, 'message': 'Ya está en tu lista'}, 400
-        
-        # Agregar a la watchlist
+
+        # Agregar a la watchlist y devolver el id insertado
         if content_type == 'movie':
-            db.session.execute(text("""
+            result = db.session.execute(text("""
                 INSERT INTO watch_list (profile_id, movie_id, status, added_date)
                 VALUES (:profile_id, :content_id, 'to_watch', CURRENT_DATE)
+                RETURNING id
             """), {'profile_id': profile_id, 'content_id': content_id})
         else:
-            db.session.execute(text("""
+            result = db.session.execute(text("""
                 INSERT INTO watch_list (profile_id, series_id, status, added_date)
                 VALUES (:profile_id, :content_id, 'to_watch', CURRENT_DATE)
+                RETURNING id
             """), {'profile_id': profile_id, 'content_id': content_id})
-        
+
+        inserted = result.fetchone()
         db.session.commit()
-        return {'success': True, 'message': 'Agregado a tu lista'}
+
+        watchlist_id = inserted.id if inserted is not None else None
+        return {'success': True, 'message': 'Agregado a tu lista', 'watchlist_id': watchlist_id}
     
     except Exception as e:
         db.session.rollback()
         print(f"Error al agregar a watchlist: {e}")
         return {'success': False, 'message': 'Error al agregar'}, 500
+
+
+@app.route('/remove-from-watchlist', methods=['POST'])
+@login_required
+def remove_from_watchlist():
+    """Eliminar un elemento de la watchlist asegurando que pertenezca al usuario."""
+    try:
+        data = request.get_json() or {}
+        wid = data.get('watchlist_id')
+        if not wid:
+            return {'success': False, 'message': 'watchlist_id es requerido'}, 400
+
+        # Comprobar que el elemento pertenece al usuario a través del perfil
+        found = db.session.execute(text("""
+            SELECT wl.id FROM watch_list wl
+            JOIN profiles p ON wl.profile_id = p.id
+            WHERE wl.id = :wid AND p.user_id = :uid
+            LIMIT 1
+        """), {'wid': wid, 'uid': current_user.id}).fetchone()
+
+        if not found:
+            return {'success': False, 'message': 'Elemento no encontrado o no pertenece al usuario'}, 404
+
+        db.session.execute(text("DELETE FROM watch_list WHERE id = :wid"), {'wid': wid})
+        db.session.commit()
+        return {'success': True, 'message': 'Eliminado de tu lista'}
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error al eliminar de watchlist: {e}")
+        return {'success': False, 'message': 'Error al eliminar'}, 500
 
 
 @app.route('/movie/<int:movie_id>')
@@ -1006,6 +1145,77 @@ def series_detail(series_id):
     except Exception as e:
         flash('Error al cargar detalles de la serie', 'danger')
         print(f"Error en series_detail: {e}")
+        return redirect(url_for('series'))
+
+
+@app.route('/play/movie/<int:movie_id>')
+@login_required
+def play_movie(movie_id):
+    """Reproducción simulada de película"""
+    try:
+        content = db.session.execute(text("""
+            SELECT m.id, m.title, m.description, m.imdb_rating
+            FROM movie m
+            WHERE m.id = :movie_id
+        """), {'movie_id': movie_id}).fetchone()
+
+        if not content:
+            flash('Película no encontrada', 'warning')
+            return redirect(url_for('movies'))
+
+        # Determinar perfil y calidad
+        profile_id = session.get('profile_id')
+        profile = None
+        if profile_id:
+            profile = db.session.execute(text("SELECT profile_name, profile_type FROM profiles WHERE id = :pid AND user_id = :uid"),
+                                         {'pid': profile_id, 'uid': current_user.id}).fetchone()
+
+        plan = getattr(current_user, 'subscription_type', 'basic')
+        quality = 'SD'
+        if plan == 'standard':
+            quality = 'HD'
+        elif plan == 'premium':
+            quality = '4K'
+
+        return render_template('player.html', content=content, quality=quality, profile_name=(profile.profile_name if profile else None))
+    except Exception as e:
+        print(f"Error en play_movie: {e}")
+        flash('Error al reproducir la película', 'danger')
+        return redirect(url_for('movies'))
+
+
+@app.route('/play/series/<int:series_id>')
+@login_required
+def play_series(series_id):
+    """Reproducción simulada de serie (reproducirá la serie entera como simulación)"""
+    try:
+        content = db.session.execute(text("""
+            SELECT s.id, s.title, s.description, s.imdb_rating
+            FROM series s
+            WHERE s.id = :series_id
+        """), {'series_id': series_id}).fetchone()
+
+        if not content:
+            flash('Serie no encontrada', 'warning')
+            return redirect(url_for('series'))
+
+        profile_id = session.get('profile_id')
+        profile = None
+        if profile_id:
+            profile = db.session.execute(text("SELECT profile_name, profile_type FROM profiles WHERE id = :pid AND user_id = :uid"),
+                                         {'pid': profile_id, 'uid': current_user.id}).fetchone()
+
+        plan = getattr(current_user, 'subscription_type', 'basic')
+        quality = 'SD'
+        if plan == 'standard':
+            quality = 'HD'
+        elif plan == 'premium':
+            quality = '4K'
+
+        return render_template('player.html', content=content, quality=quality, profile_name=(profile.profile_name if profile else None))
+    except Exception as e:
+        print(f"Error en play_series: {e}")
+        flash('Error al reproducir la serie', 'danger')
         return redirect(url_for('series'))
     
 # ============================================================================

@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}Crear Perfil - Netflix{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/catalog.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:720px; margin-top:2.5rem; color:#fff;">
+    <div class="card p-4" style="background:rgba(0,0,0,0.6); border:none;">
+        <h2 class="mb-3">Crear nuevo perfil</h2>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, msg in messages %}
+              <div class="alert alert-{{ category }}" role="alert">{{ msg }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form method="post" action="{{ url_for('create_profile') }}">
+            <div class="mb-3">
+                <label for="profile_name" class="form-label">Nombre del perfil</label>
+                <input type="text" class="form-control" id="profile_name" name="profile_name" required placeholder="Ej. Juan">
+            </div>
+
+            <div class="mb-3">
+                <label for="profile_type" class="form-label">Tipo de perfil</label>
+                <select id="profile_type" name="profile_type" class="form-select">
+                    <option value="adult">Adulto</option>
+                    <option value="kid">Niños</option>
+                </select>
+            </div>
+
+            <div style="display:flex; gap:0.5rem;">
+                <button type="submit" class="btn btn-primary">Crear Perfil</button>
+                <a href="{{ url_for('profile') }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
