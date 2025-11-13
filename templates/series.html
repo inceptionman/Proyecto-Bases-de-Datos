@@ -17,7 +17,6 @@
             {% for series in series_list %}
                 <div class="card">
                     <a href="{{ url_for('series_detail', series_id=series.id) }}" class="card-link">
-                        <!-- Usa image_url de la BD si existe, si no usa placeholder -->
                         {% if series.image_url %}
                             <img src="{{ series.image_url }}" alt="{{ series.title }}">
                         {% else %}
@@ -54,6 +53,9 @@
         </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
 <script>
     // Añadir a Mi Lista - usa la API /add-to-watchlist
     document.querySelectorAll('.btn-add-watchlist').forEach(btn => {
@@ -88,6 +90,4 @@
         });
     });
 </script>
-
 {% endblock %}
-
