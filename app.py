@@ -5,6 +5,7 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import text
+from sqlalchemy import event
 import os
 from datetime import datetime, date, timedelta
 from urllib.parse import urlparse, urljoin
@@ -16,6 +17,49 @@ app.config.from_object(Config)
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+
+# Asegurar que cada conexión al cliente DB tenga la zona horaria esperada (UTC+5)
+def _set_db_timezone(dbapi_connection, connection_record):
+    try:
+        # Para psycopg2: usar cursor. Usar la configuración de la app si está disponible
+        tz = None
+        try:
+            tz = app.config.get('DB_TIMEZONE')
+        except Exception:
+            tz = None
+
+        if not tz:
+            tz = '+05:00'
+
+        cursor = dbapi_connection.cursor()
+        cursor.execute(f"SET TIME ZONE '{tz}'")
+        cursor.close()
+    except Exception as e:
+        print(f"WARNING: no se pudo establecer zona horaria en la conexión DB: {e}")
+
+try:
+    event.listen(db.engine, 'connect', _set_db_timezone)
+except Exception as e:
+    # En algunos contextos el engine puede no estar preparado aún; lo intentamos de forma segura
+    print(f"DEBUG: no se pudo registrar el listener de timezone: {e}")
+
+
+@app.route('/debug/db-timezone')
+@login_required
+def debug_db_timezone():
+    """Devuelve la zona horaria de la sesión DB y la hora actual desde la BD para verificar la configuración."""
+    if not app.config.get('DEBUG'):
+        return "Not available", 404
+    try:
+        tz = db.session.execute(text("SELECT current_setting('TimeZone') as tz")).fetchone()
+        nowv = db.session.execute(text('SELECT now() as now_at_db')).fetchone()
+        return {
+            'session_timezone': (tz.tz if tz is not None else None),
+            'now_at_db': (nowv.now_at_db if nowv is not None else None),
+            'app_config_db_timezone': app.config.get('DB_TIMEZONE')
+        }
+    except Exception as e:
+        return {'error': str(e)}, 500
 
 
 # ============================================================================
